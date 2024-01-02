@@ -230,7 +230,7 @@ std::vector<double> grad(double f,std::vector<double> c,double dc,double dt, int
     return g;
 }
 
-std::vector<std::vector<double> > timesteps(std::string outfilename,std::vector<double> ci,int steps,double stepsize,double dc,double dt,int iters){
+std::vector<std::vector<double> > timesteps(std::vector<double> ci,int steps,double stepsize,double dc,double dt,int iters){
 
     std::vector<double>  c = ci;
     std::vector<double>  g;
@@ -261,7 +261,7 @@ std::vector<std::vector<double> > timesteps(std::string outfilename,std::vector<
     
 }
 
-void PSOrun(std::vector<std::vector<double> > positions, int steps, double stepsize, double dc, double dt, int iters){
+void PSOrun(std::string outfilename,std::vector<std::vector<double> > positions, int steps, double stepsize, double dc, double dt, int iters){
 
      std::vector<std::vector<double> > tsteps;
      std::ofstream file(outfilename);
@@ -274,7 +274,7 @@ void PSOrun(std::vector<std::vector<double> > positions, int steps, double steps
             for(int k = 0; k<tsteps[0].size(); k++){
                 file << tsteps[j][k] << " ";
             }
-            file << endl;
+            file << std::endl;
         }
 
     }
