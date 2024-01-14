@@ -53,80 +53,81 @@ void HistRead() {
     std::cout << "Conversion successful." << std::endl;
 
     // Read data from the text file into a 2D vector
-    const char* filename1 = "output_file.txt";  // Replace with your actual file name
-    std::ifstream output(filename1);
+    const int numRows = 120;
+    const int numCols = 120;
+    const double binWidth = 4.0;  // Assuming a fixed bin width of 4 GeV
+    const double xOffset = 100.0;  // Starting point of x-axis
+    const double yOffset = 50.0;   // Starting point of y-axis
 
-    if (!output.is_open()) {
+    // Initialize a 2D vector with zeros
+    std::vector<std::vector<double>> data(numRows, std::vector<double>(numCols, 0.0));
+
+    // Open the text file
+    std::ifstream outputFile1("output_file.txt");  // Replace with your actual file name
+
+    if (!outputFile1.is_open()) {
         std::cerr << "Error: Unable to open input file." << std::endl;
     }
 
-    std::vector<std::vector<double>> data;
-    double value;
-
-    while (output >> value) {
-        data.push_back({value});
+    // Read values from the text file into the 2D vector
+    for (int i = 0; i < numRows; ++i) {
+        for (int j = 0; j < numCols; ++j) {
+            if (!(outputFile1 >> data[i][j])) {
+                // Handle error if the file does not contain enough values
+                std::cerr << "Error: Insufficient data in the file." << std::endl;  
+            }
+        }
     }
 
-    output.close();
-
+    // Close the file
+    outputFile1.close();
     // Assuming data.size() represents the number of elements in the 2D array
 
     // Initialize the random seed
     srand(static_cast<unsigned int>(time(nullptr)));
 
-    // Generate random probabilities
-    double x_prob = static_cast<double>(rand()) / RAND_MAX;
+   // Randomly pick an x index
+    int xIndex = rand() % numRows;
+
+    // Calculate the 1D CDF for the selected x index
+    std::vector<double> cdf(numCols, 0.0);
+    double sum = 0.0;
+
+    for (int j = 0; j < numCols; ++j) {
+        sum += data[xIndex][j];
+        cdf[j] = sum;
+    }
+
+    // Normalize the CDF to make it a probability distribution
+    for (int j = 0; j < numCols; ++j) {
+        cdf[j] /= sum;
+    }
+
+    // Randomly pick a y index based on the calculated CDF
     double y_prob = static_cast<double>(rand()) / RAND_MAX;
 
-    // Calculate the cumulative distribution function (CDF) for both dimensions
-    double x_cdf = 0.0;
-    double y_cdf = 0.0;
-
-    // Calculate the CDF for the X dimension
-    for (const auto& row : data) {
-        for (const auto& val : row) {
-            x_cdf += val;
-        }
+    int yIndex = 0;
+    while (y_prob > cdf[yIndex] && yIndex < numCols - 1) {
+        ++yIndex;
     }
-
-    // Normalize the X CDF to make it a probability
-    x_cdf /= data.size();
-
-    // Calculate the CDF for the Y dimension
-    for (size_t j = 0; j < data[0].size(); ++j) {
-        for (size_t i = 0; i < data.size(); ++i) {
-            y_cdf += data[i][j];
-        }
-    }
-
-    // Normalize the Y CDF to make it a probability
-    y_cdf /= data.size();
-
-    // Initialize new indices
-    int new_x_index = -1;
-    int new_y_index = -1;
-
-    // Sample from the 2D array based on probabilities
-    for (size_t i = 0; i < data.size(); ++i) {
-        for (size_t j = 0; j < data[0].size(); ++j) {
-            x_prob -= data[i][j] / x_cdf;
-            y_prob -= data[i][j] / y_cdf;
-
-            if (x_prob <= 0.0 && new_x_index == -1) {
-                new_x_index = i;
-            }
-
-            if (y_prob <= 0.0 && new_y_index == -1) {
-                new_y_index = j;
-            }
-        }
-    }
-    
-    int xVal = static_cast<int>(new_x_index);
-    int yVal = static_cast<int>(new_y_index);
 
     // Display the selected indices
-    std::cout << "Selected indices: (" << new_x_index << ", " << new_y_index << ")\n";
+    std::cout << "Selected indices: (" << xIndex << ", " << yIndex << ")\n";
+    
+    int xVal = static_cast<int>(xIndex);
+    int yVal = static_cast<int>(yIndex);
+
+    // Display the value
     std::cout << data[xVal][yVal] << std::endl; 
+
+     // Convert indices back to jet pT
+    double leadingJetPt = xOffset + xIndex * binWidth;
+    double subleadingJetPt = yOffset + yIndex * binWidth;
+
+    // Display the selected indices and corresponding jet pT
+    std::cout << "Selected indices: (" << xIndex << ", " << yIndex << ")\n";
+    std::cout << "Leading Jet pT: " << leadingJetPt << " GeV\n";
+    std::cout << "Subleading Jet pT: " << subleadingJetPt << " GeV\n";
+
 
 }
