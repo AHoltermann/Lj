@@ -9,6 +9,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
+#include <random>
 
 
 
@@ -286,17 +287,37 @@ std::tuple<std::vector<std::vector<double>>,std::vector<double>> eprofile(std::s
     return r;
 }
 
+std::vector<double> randoms(int length = 2){
+
+    std::random_device rd;
+    std::mt19937 gen(rd());
+    std::vector<double> m;
+    double lower_bound = 0.0;
+    double upper_bound = 1.0;
+    std::uniform_real_distribution<double> distribution(lower_bound, upper_bound);
+    // Generate two random double-precision floating-point numbers
+    for(int i = 0; i< length; i++){
+        double ran = distribution(gen);
+        m.push_back(ran);
+    }
+
+    return m;
+}
+
 std::tuple<int,int> energypick(){
     std::tuple<std::vector<std::vector<double>>,std::vector<double>> eprof = eprofile("energies.dat");
 
     int xbin = 0;
     int ybin = 0;
 
+    std::vector<double>q = randoms(2);
+    double x_prob = q[0];
+    double y_prob = q[1];
+    
+
     std::vector<std::vector<double>> ycdfs = std::get<0>(eprof);
     std::vector<double> xcdf = std::get<1>(eprof);    
     
-    double x_prob = (double)rand() / RAND_MAX;
-    double y_prob = (double)rand() / RAND_MAX;
 
     for(int i = 0; i<100; i++){
         if(x_prob > xcdf[i]){
@@ -317,11 +338,12 @@ std::tuple<int,int> energypick(){
 
 std::tuple<int,int> positionpick(std::vector<std::vector<double> > prof){
 
-        //srand((unsigned int)time(NULL));
+        std::vector<double>q = randoms(2);
+        double x_prob = q[0];
+        double y_prob = q[1];
 
-        double x_prob = (double)rand() / RAND_MAX;
-        double y_prob = (double)rand() / RAND_MAX;
-
+        //std::cout << "xprob: " << x_prob << " yprob: " << y_prob << std::endl;
+    
         int xcount = 0;
         int ycount = 0;
  
@@ -329,23 +351,41 @@ std::tuple<int,int> positionpick(std::vector<std::vector<double> > prof){
         double cprobs2 = 0;
         double cprobs3 = 0;
 
+        double p2idx;
+        double p3idx;
+
         for(int i = 0; i<100; i++){
-            cprobs1 += std::accumulate(prof[i].begin(),prof[i].end(),0);
+            for(int j = 0; j<100; j++){
+                cprobs1 += prof[i][j];
+            }
         }
+
+        //std::cout<< "cprobs1: " << cprobs1 << std::endl;
 
         while(cprobs2 < x_prob){
-            cprobs2+=  std::accumulate(prof[xcount].begin(),prof[xcount].end(),0)/cprobs1;
+            for(int k = 0; k<100; k++){
+                p2idx += prof[xcount][k];
+            } 
+            cprobs2 += p2idx/cprobs1;
+            p2idx = 0;
+            //std::cout<< "cprobs2: " << cprobs2 << " y bin: " << xcount << std::endl;
             xcount += 1;
         }
-        xcount-=1;
+        xcount -=2;
 
-        while(cprobs3 < y_prob){
-            cprobs3+= prof[xcount][ycount]/std::accumulate(prof[xcount].begin(),prof[xcount].end(),0);
-            ycount +=1;
+        for(int l = 0; l<100; l++){
+            p3idx += prof[xcount][l];
         }
-        ycount-=1;
-
+        while(cprobs3 < y_prob){
+            //std::cout<< "p3idx: " << p3idx << std::endl;
+            cprobs3 += prof[xcount][ycount]/p3idx;
+            //std::cout<< "cprobs3: " << cprobs3 << " x bin: " << ycount << std::endl;
+            ycount +=1;    
+        }
+        ycount-=2;
+        
         std::tuple<int, int> a = std::make_tuple(xcount, ycount);
+        //std::cout<< "finish with x: " << ycount << " y: " << xcount << std::endl;
         return a;
 }
 
@@ -381,56 +421,62 @@ double energyloss(std::vector<double> c, double Ei, double theta, std::vector<st
     double d = 0;
 
     int i = 0;
+
     while(i < 100/dt){
+
+        //std::cout << "x: " << x << " y: " << y << " d: " << d << " e_x: " << e_x << " E: " << E << std::endl;
+
         x += dt*cos(theta);
         y += dt*sin(theta);
 
-        if(x < 0||x>100||y<0||y>100){
-            i = 100/dt+1;
+        d = sqrt((x-1.0*std::get<0>(pos))*(x-1.0*std::get<0>(pos))+(y-1.0*std::get<1>(pos))*(y-1.0*std::get<1>(pos)));
+        
+        e_x = weighfour(x,y,profile);
+
+        if((E < 0)||(e_x<=0.00015)){
+            break;
+        }
+        if(x < 2||x> 98||y<2||y>98){
+            break;
         }
 
-        e_x = weighfour(x,y,profile);
-        d = sqrt((x-1.0*std::get<0>(pos))*(x-1.0*std::get<0>(pos))+(y-1.0*std::get<1>(pos))*(y-1.0*std::get<1>(pos)));
-
-        E = E - c[0];
-        E = E - c[1]*d;
-        E = E - c[2]*(d*d);
-        E = E - c[3]*E;
-        E = E - c[4]*E*d;
-        E = E - c[5]*E*(d*d);
-        E = E - c[6]*(E*E);
-        E = E - c[7]*(E*E)*d;
-        E = E - c[8]*(E*E)*(d*d);
-        E = E - c[0]*e_x;
-        E = E - c[10]*d*e_x;
-        E = E - c[11]*(d*d)*e_x;
-        E = E - c[12]*E*e_x;
-        E = E - c[13]*E*d*e_x;
-        E = E - c[14]*E*(d*d)*e_x;
-        E = E - c[15]*(E*E)*e_x;
-        E = E - c[16]*(E*E)*d*e_x;
-        E = E - c[17]*(E*E)*(d*d)*e_x;
-        E = E - c[18]*(e_x*e_x);
-        E = E - c[19]*d*(e_x*e_x);
-        E = E - c[20]*(d*d)*(e_x*e_x);
-        E = E - c[21]*E*(e_x*e_x);
-        E = E - c[22]*E*d*(e_x*e_x);
-        E = E - c[23]*E*(d*d)*(e_x*e_x);
-        E = E - c[24]*(E*E)*(e_x*e_x);
-        E = E - c[25]*(E*E)*d*(e_x*e_x);
-        E = E - c[26]*(E*E)*(d*d)*(e_x*e_x);
+        E = E - c[0]*dt;
+        E = E - c[1]*d*dt;
+        E = E - c[2]*(d*d)*dt;
+        E = E - c[3]*E*dt;
+        E = E - c[4]*E*d*dt;
+        E = E - c[5]*E*(d*d)*dt;
+        E = E - c[6]*(E*E)*dt;
+        E = E - c[7]*(E*E)*d*dt;
+        E = E - c[8]*(E*E)*(d*d)*dt;
+        E = E - c[9]*e_x*dt;
+        E = E - c[10]*d*e_x*dt;
+        E = E - c[11]*(d*d)*e_x*dt;
+        E = E - c[12]*E*e_x*dt;
+        E = E - c[13]*E*d*e_x*dt;
+        E = E - c[14]*E*(d*d)*e_x*dt;
+        E = E - c[15]*(E*E)*e_x*dt;
+        E = E - c[16]*(E*E)*d*e_x*dt;
+        E = E - c[17]*(E*E)*(d*d)*e_x*dt;
+        E = E - c[18]*(e_x*e_x)*dt;
+        E = E - c[19]*d*(e_x*e_x)*dt;
+        E = E - c[20]*(d*d)*(e_x*e_x)*dt;
+        E = E - c[21]*E*(e_x*e_x)*dt;
+        E = E - c[22]*E*d*(e_x*e_x)*dt;
+        E = E - c[23]*E*(d*d)*(e_x*e_x)*dt;
+        E = E - c[24]*(E*E)*(e_x*e_x)*dt;
+        E = E - c[25]*(E*E)*d*(e_x*e_x)*dt;
+        E = E - c[26]*(E*E)*(d*d)*(e_x*e_x)*dt;
 
        i+=1; 
-
     }
-
+    
     return E;
 }
 
-std::vector<double> xj_sample(std::vector<double> c, double dt, int iters){
+std::vector<double> xj_sample(std::vector<double> c, double dt, int iters, int jetsamples = 1){
 
     std::vector<double> xjs;
-    //srand((unsigned int)time(NULL));
 
     double E1,E2;
     double theta1,theta2;
@@ -439,28 +485,33 @@ std::vector<double> xj_sample(std::vector<double> c, double dt, int iters){
     
     for(int i = 0; i<iters; i++){
 
-        std::tuple<int,int> energypicks = energypick();
-        E1 = 1.0*std::get<0>(energypicks);
-        E2 = 1.0*std::get<0>(energypicks);
-
         std::string e = eventstring(i);
         std::vector<std::vector<double> >prof = profile(e);
 
-        theta1 = ((double)rand() / RAND_MAX)*2*(3.1415926)-3.1415926;
-        theta2 = theta1 + 3.1415926;
+        for(int j = 0; j<jetsamples; j++){
+            //std::tuple<int,int> energypicks = energypick();
+            //E1 = 1.0*std::get<0>(energypicks);
+            //E2 = 1.0*std::get<1>(energypicks);
+            E1 = 150;
+            E2 = 100;
 
-        pt1 = energyloss(c,E1,theta1,prof,dt);
-        pt2 = energyloss(c,E2,theta2,prof,dt);
+            std::vector<double>q = randoms(1);
+            theta1 = q[0]*2*(3.1415926)-3.1415926;
+            theta2 = theta1 + 3.1415926;
 
-        if(pt1 < pt2){
-            xj = pt1/pt2;
+            pt1 = energyloss(c,E1,theta1,prof,dt);
+            pt2 = energyloss(c,E2,theta2,prof,dt);
+
+            if(pt1 < pt2){
+                xj = pt1/pt2;
+            }
+            else{
+                xj = pt2/pt1;
+            }
+
+            xjs.push_back(pt1);
+            xjs.push_back(xj);
         }
-        else{
-            xj = pt2/pt1;
-        }
-
-        xjs.push_back(pt1);
-        xjs.push_back(xj);
 
     }
     return xjs;
@@ -931,7 +982,7 @@ std::vector<std::vector<std::vector<std::vector<double>>>> importdata(){
     return r;
 }
 
-double xj_metric(std::vector<double> xj_sample, int iters, std::vector<std::vector<std::vector<std::vector<double>>>> values){
+double xj_metric(std::vector<double> xj_sample, std::vector<std::vector<std::vector<std::vector<double>>>> values){
 
     double pt;
     double xj;
@@ -948,7 +999,7 @@ double xj_metric(std::vector<double> xj_sample, int iters, std::vector<std::vect
     // read in all of the xjs 
     // sort them by pt and centrality: we should have different 
 
-    for(int i = 0; i<iters; i++){
+    for(int i = 0; i<xj_sample.size(); i++){
 
         pt = xj_sample[2*i];
         xj = xj_sample[2*i+1];
@@ -986,12 +1037,12 @@ double xj_metric(std::vector<double> xj_sample, int iters, std::vector<std::vect
     return diff;
 }
 
-double compute(std::vector<double> c,double dt, int iters,std::vector<std::vector<std::vector<std::vector<double>>>> values){
-    std::vector<double> xj = xj_sample(c,dt,iters);
-    return xj_metric(xj,iters,values);
+double compute(std::vector<double> c,double dt, int iters, int jetsamples, std::vector<std::vector<std::vector<std::vector<double>>>> values){
+    std::vector<double> xj = xj_sample(c,dt,iters,jetsamples);
+    return xj_metric(xj,values);
 }
 
-std::vector<double> grad(double f,std::vector<double> c,double dc,double dt, int iters, std::vector<std::vector<std::vector<std::vector<double>>>> values){
+std::vector<double> grad(double f,std::vector<double> c,double dc,double dt, int iters, int jetsamples, std::vector<std::vector<std::vector<std::vector<double>>>> values){
 
     //double f = compute(c,dt,iters);
     std::vector<double> d = c;
@@ -999,14 +1050,14 @@ std::vector<double> grad(double f,std::vector<double> c,double dc,double dt, int
     double q = 0;
     for(int i = 0; i<c.size(); i++){
         d[i] += dc;
-        q = compute(d,dt,iters,values);
+        q = compute(d,dt,iters,jetsamples,values);
         g.push_back(q-f/(dc));
         d[i]-= dc;
     }
     return g;
 }
 
-std::vector<std::vector<double> > timesteps(std::vector<double> ci,int steps,double stepsize,double dc,double dt,int iters,std::vector<std::vector<std::vector<std::vector<double>>>> values){
+std::vector<std::vector<double> > timesteps(std::vector<double> ci,int steps,double stepsize,double dc,double dt,int iters, int jetsamples, std::vector<std::vector<std::vector<std::vector<double>>>> values){
 
     std::vector<double>  c = ci;
     std::vector<double>  g;
@@ -1015,8 +1066,8 @@ std::vector<std::vector<double> > timesteps(std::vector<double> ci,int steps,dou
     std::vector<std::vector<double> > infs;
 
     for(int i = 0; i<steps;i++){
-        f = compute(c,dt,iters,values);
-        g = grad(f,c,dc,dt,iters,values);
+        f = compute(c,dt,iters,jetsamples,values);
+        g = grad(f,c,dc,dt,iters,jetsamples,values);
         
         inf.push_back(i);
         for(int j = 0; j<c.size();j++){
@@ -1037,7 +1088,7 @@ std::vector<std::vector<double> > timesteps(std::vector<double> ci,int steps,dou
     
 }
 
-void PSOrun(std::string outfilename,std::vector<std::vector<double> > positions, int steps, double stepsize, double dc, double dt, int iters){
+void PSOrun(std::string outfilename,std::vector<std::vector<double> > positions, int steps, double stepsize, double dc, double dt, int iters, int jetsamples){
 
      std::vector<std::vector<double> > tsteps;
      std::ofstream file(outfilename);
@@ -1045,7 +1096,7 @@ void PSOrun(std::string outfilename,std::vector<std::vector<double> > positions,
      values = importdata();
   
     for(int i = 0; i<positions.size(); i++){
-        std::vector<std::vector<double> > tsteps = timesteps(positions[i],steps,stepsize,dc,dt,iters,values);
+        std::vector<std::vector<double> > tsteps = timesteps(positions[i],steps,stepsize,dc,dt,iters,jetsamples,values);
 
         for(int j = 0; j<tsteps.size(); j++){
             for(int k = 0; k<tsteps[0].size(); k++){
@@ -1060,7 +1111,35 @@ void PSOrun(std::string outfilename,std::vector<std::vector<double> > positions,
 
 int main(){
 
-    srand((unsigned int)time(NULL));
+    //std::vector<std::vector<std::vector<std::vector<double>>>> values = importdata();
+    std::vector<std::vector<double>> prof = profile(eventstring(0)); 
+    double E100  = 0;
+    double E200  = 0;
+    double E300  = 0;
+    std::vector<double> a;
+    double ang = 0;
+    std::ofstream file("tests/c0_calib.dat");
+
+    std::vector<double> c = {1.0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
+    for(int i = 0; i<1000; i++){
+        
+        if(centralityclass(i) != 0){
+            continue;
+        }
+        prof = profile(eventstring(i));
+
+        for(int j = 0; j<10; j++){
+            a = randoms(1);
+            ang = a[0]*2.0*(3.1415926) - 3.1415926; 
+            E100 = energyloss(c,100,ang,prof,0.1);
+            E200 = energyloss(c,200,ang,prof,0.1);
+            E300 = energyloss(c,300,ang,prof,0.1);
+            file << E100 << " " << E200 << " " << E300 << std::endl;
+            std::cout << E100 << " " << E200 << " " << E300 << " " << i <<  std::endl;
+        }
+        
+    }
+    file.close();
     return 0;
 
 }
