@@ -100,7 +100,36 @@ void HistRead() {
 
     for (int k = 0; k < numPoints; ++k) {         
         // Randomly pick an x index
-        int xIndex = rand() % numRows;
+        /*
+        0.) Make an x_cdf array or vector, and initialize some counters (Z)
+        1.) Sum up all values of the array (I believe it’s like 6243475)
+        2.) For i in range x indices:
+		    for j in range y indices:	
+				Z+= data[i][j]
+		    x_cdf[i] = Z/6243475
+            You will have a CDF vector, so x[100] should be 1.*/
+        
+        double randA = static_cast<double>(std::rand()) / RAND_MAX;
+        std::vector<double> x_cdf(numRows, 0.0);
+        double x_sum = 0.0;
+        for (int i = 0; i < numRows; ++i) {
+            for (int j = 0; j < numCols; ++j) {
+                x_sum += data[i][j];
+            }
+            x_cdf[i] = x_sum/6243475;
+        }
+        //3.) With a random number randA between 0 and 1, find the greatest index such that x_cdf[i] < randA. 
+        //That’s your x index, which you then plug into the next part of your calculation
+        int xIndex = -1;
+        for (int i = 0; i < x_cdf.size(); ++i) {
+            if (x_cdf[i] < randA) {
+                xIndex = i;
+            } else {
+            // Since x_cdf is assumed to be sorted, we can break the loop
+            // as soon as x_cdf[i] is not less than randA
+                break;
+            }
+        }
 
         // Calculate the 1D CDF for the selected x index
         std::vector<double> cdf(numCols, 0.0);
