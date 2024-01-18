@@ -36,7 +36,8 @@ void HistRead() {
     int numBinsY = hist2D->GetNbinsY();
 
     // Loop through the bins of the 2D histogram and write the bin content to the text file
-    for (int j = numBinsY; j >= 0; --j) {
+    //for (int j = numBinsY; j >= 0; --j) {
+    for (int j = 0; j <= numBinsY; ++j) {
         for (int i = 1; i <= numBinsX; ++i) {
             double binContent = hist2D->GetBinContent(i, j);
             outputFile << binContent << "\t";
@@ -118,6 +119,7 @@ void HistRead() {
             }
             x_cdf[i] = x_sum/6243475;
         }
+        
         //3.) With a random number randA between 0 and 1, find the greatest index such that x_cdf[i] < randA. 
         //That’s your x index, which you then plug into the next part of your calculation
         int xIndex = -1;
@@ -153,15 +155,15 @@ void HistRead() {
             ++yIndex;
         }
         // Convert indices back to jet pT
-        double leadingJetPt = xOffset + xIndex * binWidth;
-        double subleadingJetPt = yOffset + yIndex * binWidth;
+        double leadingJetPt = yOffset + xIndex * binWidth;
+        double subleadingJetPt = xOffset + yIndex * binWidth;
         int xVal = static_cast<int>(xIndex);
         int yVal = static_cast<int>(yIndex);
 
         
         // Fill histogram
-        hist->Fill(leadingJetPt, subleadingJetPt, data[xVal][yVal]);
-        
+        //hist->Fill(leadingJetPt, subleadingJetPt, data[xVal][yVal]);
+        hist->Fill(subleadingJetPt,leadingJetPt);
     }
     /*
     // Display the selected indices
