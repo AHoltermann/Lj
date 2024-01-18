@@ -7,6 +7,7 @@
 #include <ctime>
 
 void HistRead() {
+    //... READING ROOT FILE ...
     // Open the ROOT file containing the 2D histograms
     TFile* inputFile = TFile::Open("com_5020_minpt_50_merged.root", "READ");
 
@@ -30,15 +31,15 @@ void HistRead() {
         inputFile->Close();     
     }
     
+
     int numBinsX = hist2D->GetNbinsX();
     int numBinsY = hist2D->GetNbinsY();
 
     // Loop through the bins of the 2D histogram and write the bin content to the text file
-    for (int j = 1; j <= numBinsY; ++j) {
+    for (int j = numBinsY; j >= 0; --j) {
         for (int i = 1; i <= numBinsX; ++i) {
             double binContent = hist2D->GetBinContent(i, j);
             outputFile << binContent << "\t";
-
             // Start a new line after numBinsX columns
             if (i == numBinsX) {
                 outputFile << "\n";
@@ -52,18 +53,23 @@ void HistRead() {
 
     std::cout << "Conversion successful." << std::endl;
 
-    // Read data from the text file into a 2D vector
-    const int numRows = 120;
-    const int numCols = 120;
-    const double binWidth = 4.0;  // Assuming a fixed bin width of 4 GeV
-    const double xOffset = 100.0;  // Starting point of x-axis
-    const double yOffset = 50.0;   // Starting point of y-axis
+    //...CONVERSION FINISHED...
 
+    // **Read data from the text file into a 2D vector**
+    const int numRows = 120;
+    const int numCols = 100;
+    const double binWidth = 4.0;  // Assuming a fixed bin width of 4 GeV!!
+    const double xOffset = 100.0;  // Starting point of x-axis
+    const double yOffset = 20.0;   // Starting point of y-axis
+    const int numPoints = 5000; //number of points to generate to check the method
+
+    
     // Initialize a 2D vector with zeros
-    std::vector<std::vector<double>> data(numRows, std::vector<double>(numCols, 0.0));
+    std::vector<std::vector<double>> data(numRows, std::vector<double>(numCols));
+
 
     // Open the text file
-    std::ifstream outputFile1("output_file.txt");  // Replace with your actual file name
+    std::ifstream outputFile1("output_file.txt"); 
 
     if (!outputFile1.is_open()) {
         std::cerr << "Error: Unable to open input file." << std::endl;
@@ -81,36 +87,54 @@ void HistRead() {
 
     // Close the file
     outputFile1.close();
-    // Assuming data.size() represents the number of elements in the 2D array
-
+    
+    //CHECK METHOD ...
     // Initialize the random seed
     srand(static_cast<unsigned int>(time(nullptr)));
+    //checking for the correctness of the code
+    // Create a TH2D histogram
+    TH2D* hist = new TH2D("hist", "Randomly Generated Data;Leading Jet pT (GeV);Subleading Jet pT (GeV)",
+                          100, xOffset, 500,
+                          120, yOffset, 500);
 
-   // Randomly pick an x index
-    int xIndex = rand() % numRows;
 
-    // Calculate the 1D CDF for the selected x index
-    std::vector<double> cdf(numCols, 0.0);
-    double sum = 0.0;
+    for (int k = 0; k < numPoints; ++k) {         
+        // Randomly pick an x index
+        int xIndex = rand() % numRows;
 
-    for (int j = 0; j < numCols; ++j) {
-        sum += data[xIndex][j];
-        cdf[j] = sum;
+        // Calculate the 1D CDF for the selected x index
+        std::vector<double> cdf(numCols, 0.0);
+        double sum = 0.0;
+
+        for (int j = 0; j < numCols; ++j) {
+            sum += data[xIndex][j];
+            cdf[j] = sum;
+        }
+
+        // Normalize the CDF to make it a probability distribution
+        for (int j = 0; j < numCols; ++j) {
+            cdf[j] /= sum;
+        }
+
+        // Randomly pick a y index based on the calculated CDF
+        double y_prob = static_cast<double>(rand()) / RAND_MAX;
+
+        int yIndex = 0;
+        while (y_prob > cdf[yIndex] && yIndex < numCols - 1) {
+            ++yIndex;
+        }
+        // Convert indices back to jet pT
+        double leadingJetPt = xOffset + xIndex * binWidth;
+        double subleadingJetPt = yOffset + yIndex * binWidth;
+        int xVal = static_cast<int>(xIndex);
+        int yVal = static_cast<int>(yIndex);
+
+        
+        // Fill histogram
+        hist->Fill(leadingJetPt, subleadingJetPt, data[xVal][yVal]);
+        
     }
-
-    // Normalize the CDF to make it a probability distribution
-    for (int j = 0; j < numCols; ++j) {
-        cdf[j] /= sum;
-    }
-
-    // Randomly pick a y index based on the calculated CDF
-    double y_prob = static_cast<double>(rand()) / RAND_MAX;
-
-    int yIndex = 0;
-    while (y_prob > cdf[yIndex] && yIndex < numCols - 1) {
-        ++yIndex;
-    }
-
+    /*
     // Display the selected indices
     std::cout << "Selected indices: (" << xIndex << ", " << yIndex << ")\n";
     
@@ -120,14 +144,25 @@ void HistRead() {
     // Display the value
     std::cout << data[xVal][yVal] << std::endl; 
 
-     // Convert indices back to jet pT
-    double leadingJetPt = xOffset + xIndex * binWidth;
-    double subleadingJetPt = yOffset + yIndex * binWidth;
+    
 
     // Display the selected indices and corresponding jet pT
     std::cout << "Selected indices: (" << xIndex << ", " << yIndex << ")\n";
     std::cout << "Leading Jet pT: " << leadingJetPt << " GeV\n";
     std::cout << "Subleading Jet pT: " << subleadingJetPt << " GeV\n";
+    */
+    //Draw 
+    // Create a canvas and draw the histogram
+    TCanvas* canvas = new TCanvas("canvas", "Canvas", 800, 600);
+    hist->Draw("colz");
+
+    // Run the ROOT event loop
+    canvas->Update();
+    canvas->Draw();
+    gSystem->ProcessEvents();
+    
+    
+
 
 
 }
