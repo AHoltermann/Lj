@@ -12,13 +12,12 @@
 #include <random>
 
 
-
-
 std::string eventstring(int number = 6) {
     // Assuming the format is "newevents.dat/XXX.dat"
     // returns string pointing to n-th file name 
     std::ostringstream filename;
-    filename << "newevents.dat/" << std::setw(3) << std::setfill('0') << number << ".dat";
+    //filename << "newevents.dat/" << std::setw(3) << std::setfill('0') << number << ".dat";
+    filename << "pbpb_50k.dat/" << std::setw(4) << std::setfill('0') << number << ".dat";
     return filename.str();
 }
 
@@ -240,8 +239,8 @@ std::vector<std::vector<double>> eprofile(std::string filename = "energies.dat")
     int totjets = 6243475;
     std::ifstream outputFile1(filename); 
 
-    int numRows = 120;
-    int numCols = 100;
+    int numRows = 100;
+    int numCols = 120;
     
     // Initialize a 2D vector with zeros
     std::vector<std::vector<double>> data(numRows, std::vector<double>(numCols));
@@ -263,6 +262,9 @@ std::vector<std::vector<double>> eprofile(std::string filename = "energies.dat")
 
     // Close the file
     outputFile1.close();
+
+    //std::cout << data.size() << " " << data[0].size() << std::endl;
+
     return data;
 }
 
@@ -284,68 +286,61 @@ std::vector<double> randoms(int length = 2){
 }
 
 std::tuple<int,int> energypick(std::vector<std::vector<double>> data){
+   
+        //std::cout << "energypick" << std::endl;
 
-    //std::vector<std::vector<double>> data = eprofile("energies.dat");
-    int numRows = 120;
-    int numCols = 100;
-    double binWidth = 4.0;  // Assuming a fixed bin width of 4 GeV!!
-    double xOffset = 100.0;  // Starting point of x-axis
-    double yOffset = 20.0;   // Starting point of y-axis
+        std::vector<double>q = randoms(2);
+        double x_prob = q[0];
+        double y_prob = q[1];
 
-    std::vector<double> r = randoms(2);
-    double randA = r[0];
-    double y_prob = r[1];
+        //std::cout << x_prob << " " << y_prob << std::endl;
 
-    std::vector<double> x_cdf(numRows, 0.0);
-    double x_sum = 0.0;
-    for (int i = 0; i < numRows; ++i) {
-        for (int j = 0; j < numCols; ++j) {
-            x_sum += data[i][j];
+        //std::cout << "xprob: " << x_prob << " yprob: " << y_prob << std::endl;
+    
+        int xcount = 0;
+        int ycount = 0;
+ 
+        double cprobs1 = 0;
+        double cprobs2 = 0;
+        double cprobs3 = 0;
+
+        double p2idx =0;
+        double p3idx = 0;
+
+        for(int i = 0; i<100; i++){
+            for(int j = 0; j<120; j++){
+                cprobs1 += data[i][j];
+            }
         }
-        x_cdf[i] = x_sum/6243475;
-    }
-        
-        
-    int xIndex = -1;
-    for (int i = 0; i < x_cdf.size(); ++i) {
-        if (x_cdf[i] < randA) {
-            xIndex = i;
-        } else {
-            break;
+        while((cprobs2 < x_prob) && (xcount < 99)){
+            for(int k = 0; k<120; k++){
+                p2idx += data[xcount][k];
+            } 
+            cprobs2 += p2idx/cprobs1;
+            p2idx = 0;
+            //std::cout<< "cprobs2: " << cprobs2 << " y bin: " << xcount << std::endl;
+            xcount += 1;
         }
-    }  
+        xcount -=1;
 
-    // Calculate the 1D CDF for the selected x index
-    std::vector<double> cdf(numCols, 0.0);
-    double sum = 0.0;
-
-    for (int j = 0; j < numCols; ++j) {
-        sum += data[xIndex][j];
-        cdf[j] = sum;
-    }
-
-    // Normalize the CDF to make it a probability distribution
-    for (int j = 0; j < numCols; ++j) {
-        cdf[j] /= sum;
-    }
-
-    // Randomly pick a y index based on the calculated CDF
-
-    int yIndex = 0;
-    while (y_prob > cdf[yIndex] && yIndex < numCols - 1) {
-        ++yIndex;
-    }
-    // Convert indices back to jet pT
-    double leadingJetPt = yOffset + xIndex * binWidth;
-    double subleadingJetPt = xOffset + yIndex * binWidth;
-    int xVal = static_cast<int>(xIndex);
-    int yVal = static_cast<int>(yIndex);
-
-    std::tuple<int,int> Es = std::make_tuple(static_cast<int>(subleadingJetPt),static_cast<int>(leadingJetPt));   
+        for(int l = 0; l<120; l++){
+            p3idx += data[xcount][l];
+        }
+        while((cprobs3 < y_prob)&&(ycount < 119)){
+            //std::cout<< "p3idx: " << p3idx << std::endl;
+            cprobs3 += data[xcount][ycount]/p3idx;
+            //std::cout<< "cprobs3: " << cprobs3 << " x bin: " << ycount << std::endl;
+            ycount +=1;    
+        }
+        ycount-=1;
+        
+    //std::tuple<int,int> Es = std::make_tuple(static_cast<int>(subleadingJetPt),static_cast<int>(leadingJetPt));   
+    std::tuple<int,int> Es = std::make_tuple(100+xcount*4,20+ycount*4); 
     return Es;
 }
 
 std::tuple<int,int> positionpick(std::vector<std::vector<double> > prof){
+        //std::cout << "positionpick" << std::endl;
 
         std::vector<double>q = randoms(2);
         double x_prob = q[0];
@@ -458,6 +453,8 @@ double pathlength(int e_select, double theta, std::vector<std::vector<double>> p
 
 double energyloss(std::vector<double> c, std::vector<double> c_lim, double Ei, double theta, std::vector<std::vector<double> > profile, double dt){
 
+    //std::cout << "eloss" << std::endl;
+
     std::tuple<int,int> pos = positionpick(profile);
     //pos = std::make_tuple(50,50);
     double x = 1.0*std::get<0>(pos);
@@ -475,8 +472,8 @@ double energyloss(std::vector<double> c, std::vector<double> c_lim, double Ei, d
         x += dt*cos(theta);
         y += dt*sin(theta);
 
-        d = sqrt((x-1.0*std::get<0>(pos))*(x-1.0*std::get<0>(pos))+(y-1.0*std::get<1>(pos))*(y-1.0*std::get<1>(pos)));
-        d2 += dt;
+        //d = sqrt((x-1.0*std::get<0>(pos))*(x-1.0*std::get<0>(pos))+(y-1.0*std::get<1>(pos))*(y-1.0*std::get<1>(pos)));
+        d += dt;
         e_x = weighfour(x,y,profile);
 
         if((E < 1)||(e_x<=0.00015)){
@@ -514,7 +511,6 @@ double energyloss(std::vector<double> c, std::vector<double> c_lim, double Ei, d
         E = E - c_lim[25]*c[25]*(E*E)*d*(e_x*e_x)*dt; //0.000004
         E = E - c_lim[26]*c[26]*(E*E)*(d*d)*(e_x*e_x)*dt; //0.0000002
         
-        //std::cout <<  " " << 500 - E << std::endl;
        i+=1; 
     } 
     return E;
@@ -522,37 +518,38 @@ double energyloss(std::vector<double> c, std::vector<double> c_lim, double Ei, d
 
 std::vector<double> xj_sample(std::vector<double> c, std::vector<double> c_lim, double dt, int iters, int jetsamples, std::vector<std::vector<double>> data){
 
+    std::cout << "xjsample" << std::endl;
+
     std::vector<double> xjs;
 
     double E1,E2;
     double theta1,theta2;
     double pt1,pt2;
     double xj;
-    std::tuple<int,int> energypicks;
     for(int i = 0; i<iters; i++){
 
         std::vector<std::vector<double> >prof = profile(eventstring(i));
 
         for(int j = 0; j<jetsamples; j++){
             
-            energypicks = energypick(data);
+            std::tuple<int,int> energypicks = energypick(data);
             E1 = 1.0*std::get<0>(energypicks);
             E2 = 1.0*std::get<1>(energypicks);
             //E1 = 150;
             //E2 = 100;
 
-            std::cout << E1 << " " << E2 << std::endl;
+            //std::cout << E1 << " " << E2 << std::endl;
 
             std::vector<double>q = randoms(1);
             theta1 = q[0]*2*(3.1415926)-3.1415926;
             theta2 = theta1 + 3.1415926;
 
-            std::cout << theta1 << " " << theta2 << std::endl;
+            //std::cout << theta1 << " " << theta2 << std::endl;
 
             pt1 = energyloss(c,c_lim,E1,theta1,prof,dt);
             pt2 = energyloss(c,c_lim,E2,theta2,prof,dt);
 
-            std::cout << pt1 << " " << pt2 << std::endl;
+            //std::cout << pt1 << " " << pt2 << std::endl;
 
             if(pt1 < pt2){
                 xj = pt1/pt2;
@@ -561,12 +558,16 @@ std::vector<double> xj_sample(std::vector<double> c, std::vector<double> c_lim, 
                 xj = pt2/pt1;
             }
 
-            std::cout << xj << " " << pt1 << std::endl;
+            //std::cout << xj << " " << pt1 << std::endl;
+            //std::cout << i*jetsamples+j << std::endl;
 
             xjs.push_back(pt1);
             xjs.push_back(xj);
 
-            std::cout << "check" << std::endl;
+            if((i*jetsamples+j)%1000 == 0){
+                std::cout << 1.0*(i*jetsamples+j)/(iters*jetsamples) << std::endl;
+            }
+
         }
 
     }
@@ -1041,6 +1042,8 @@ std::vector<std::vector<std::vector<std::vector<double>>>> importdata(){
 
 double xj_metric(std::vector<double> xj_sample, std::vector<std::vector<std::vector<std::vector<double>>>> values, int jetsamples){
 
+    std::cout << "xjmetric" << std::endl;
+
     double pt;
     double xj;
     int centrality = 0;
@@ -1054,12 +1057,12 @@ double xj_metric(std::vector<double> xj_sample, std::vector<std::vector<std::vec
     //std::vector<std::vector<std::vector<double>>> xj_data_err(5, std::vector<std::vector<double>>(12, std::vector<double>(10)));
 
    
-    for(int i = 0; i<xj_sample.size()/2; i++){
+    for(int i = 0; i<xj_sample.size()/2-2; i++){
 
         pt = xj_sample[2*i];
         xj = xj_sample[2*i+1];
         int ip = i/jetsamples;
-        centrality = centralityclass(ip); // adjust for different jetsample #s 
+        centrality = centralityclass(ip); // adjust for different jetsample #s <- 
         pTbin = pTsort(pt);
         xjbin = xjsort(xj);
 
@@ -1070,10 +1073,10 @@ double xj_metric(std::vector<double> xj_sample, std::vector<std::vector<std::vec
         }
         xj_data[centrality][pTbin][xjbin] +=1;    
     }
-    std::vector<std::vector<int>> integral(5, std::vector<int> (13));
+    std::vector<std::vector<int>> integral(5, std::vector<int> (12));
 
     for(int j = 0; j<5; j++){
-        for(int k = 0; k<13; k++){
+        for(int k = 0; k<12; k++){
             for(int l = 0; l<10; l++){
                 if(xj_data[j][k][l] >0){
                 //std::cout << j << " " << k << " " << l << " " << xj_data[j][k][l] << std::endl;
@@ -1100,9 +1103,105 @@ double xj_metric(std::vector<double> xj_sample, std::vector<std::vector<std::vec
     return diff;
 }
 
+std::vector<std::vector<double>> xj_metric_central(std::vector<double> xj_sample, std::vector<std::vector<std::vector<std::vector<double>>>> values){
+    
+    std::cout << "xjmetric" << std::endl;
+
+    std::vector<double> jetfreq = {
+    0.48078,
+    0.18828,
+    0.1396,
+    0.07704,
+    0.05137,
+    0.02716,
+    0.01596,
+    0.00957,
+    0.00532,
+    0.00264,
+    0.00188,
+    0.0004,
+    };
+    
+    double pt;
+    double xj;
+    int pTbin = 0;
+    int xjbin = 0;
+
+    std::vector<std::vector<double>> xj_exp = values[0][0];
+    std::vector<std::vector<double>> xj_exp_err = values[1][0];
+    std::vector<std::vector<double>> xj_exp_syst = values[2][0];
+    //std::vector<std::vector<double>>> xj_data(5, std::vector<std::vector<double>>(13, std::vector<double>(10)));
+    std::vector<std::vector<double>> xj_data(12, std::vector<double>(10));
+    std::vector<std::vector<double>> errors;
+    std::vector<double> error;
+    //std::vector<std::vector<std::vector<double>>> xj_data_err(5, std::vector<std::vector<double>>(12, std::vector<double>(10)));
+   
+    for(int i = 0; i<xj_sample.size()/2-2; i++){
+
+        pt = xj_sample[2*i];
+        xj = xj_sample[2*i+1];
+        pTbin = pTsort(pt);
+        xjbin = xjsort(xj);
+
+        //std::cout << pt << " " << xj << " " << pTbin << " " << xjbin << std::endl;
+
+        if((pTbin == -1)||(xjbin == -1)){
+            continue;
+        }
+        xj_data[pTbin][xjbin] +=1;    
+    }
+    std::vector<double> integral(12);
+
+    for(int k = 0; k<12; k++){
+        for(int l = 0; l<10; l++){
+            if(xj_data[k][l] >0){
+            //std::cout << k << " " << l << " " << xj_data[k][l] << std::endl;
+            }
+            integral[k]+=xj_data[k][l]*xj_binwidth(l);       
+        }
+        //std::cout << "integral: " << k << " " << integral[k] <<std::endl;
+    }
+
+    double diff = 0;
+
+    std::cout << "xjmetric fill errors" << std::endl;
+
+
+    for(int k = 0; k<12; k++){
+        error.clear();
+        for(int l = 0; l<10; l++){
+            if(integral[k] > 0){
+            xj_data[k][l] /= integral[k];
+            }
+            else {xj_data[k][l] = 0;};
+            diff += (xj_data[k][l] - xj_exp[k][l])*(xj_data[k][l] - xj_exp[k][l])*(xj_binwidth(l))*(1/((xj_exp_err[k][l]*xj_exp_err[k][l])+(xj_exp_syst[k][l]*xj_exp_syst[k][l])))*jetfreq[k];
+            //std::cout << "error: " << k << " " << l << " " << (xj_data[k][l] - xj_exp[k][l]) << std::endl; 
+            error.push_back((xj_data[k][l] - xj_exp[k][l])*(xj_data[k][l] - xj_exp[k][l])*(xj_binwidth(l))*(1/((xj_exp_err[k][l]*xj_exp_err[k][l])+(xj_exp_syst[k][l]*xj_exp_syst[k][l])))*jetfreq[k]);
+        }
+        errors.push_back(error);
+    }
+    
+    std::cout << "xj metric run with values: " << diff/46.0987 << std::endl;
+    //return diff/46.0987;
+    return errors;
+}
+
 double compute(std::vector<double> c, std::vector<double> c_lim, double dt, int iters, int jetsamples, std::vector<std::vector<std::vector<std::vector<double>>>> values, std::vector<std::vector<double>> data){
+    
+    std::cout << "compute" << std::endl;
+
+    
     std::vector<double> xj = xj_sample(c,c_lim,dt,iters,jetsamples,data);
-    return xj_metric(xj,values,jetsamples);
+    //return xj_metric(xj,values,jetsamples);
+    double diff;
+    std::vector<std::vector<double>> a = xj_metric_central(xj,values);
+    for(int i = 0; i<a.size(); i++){
+        for(int j = 0; j<a[0].size(); j++){
+            
+        diff+=a[i][j];
+        }
+    }
+    return diff;
 }
 
 double gradindex(double f, std::vector<double> c, std::vector<double> c_lim, double dc,double dt,int iters,int jetsamples,std::vector<std::vector<std::vector<std::vector<double>>>> values, std::vector<std::vector<double>> data, int index = 12){
@@ -1186,6 +1285,103 @@ std::vector<std::vector<double> > timesteps(std::vector<double> ci,std::vector<d
     return infs;
 }
 
+std::vector<std::vector<double>> dimopt(int index, std::vector<double> ci, std::vector<double> c_lim, std::vector<double> dc, int steps, double dt, int iters, int jetsamples, std::vector<std::vector<std::vector<std::vector<double>>>> values, std::vector<std::vector<double>> data){
+    //figure out stepsize
+    double stepsize = 0.001;
+    std::vector <double> c = ci;
+    double gradient = 0;
+    double f;
+    std::vector<double> inf;
+    std::vector<std::vector<double> > infs;
+    
+
+    for(int i = 0; i<steps;i++){
+        f = compute(c,c_lim,dt,iters,jetsamples,values,data);
+        gradient = gradindex(f,c,c_lim,dc[index],dt,iters,jetsamples,values,data,index);
+        
+        inf.push_back(i*1.0); 
+        inf.push_back(c[index]);
+        inf.push_back(f);
+        inf.push_back(gradient);
+        infs.push_back(inf);
+        inf.clear();
+
+        std::cout << "Step: " << i << " param: " << c[index] << " function: "  << f << " deriv: " << gradient << std::endl;
+
+        c[index] -= gradient*stepsize;
+
+        if(c[index] > 1.5 || c[index] < -0.5 ){
+            break;
+        }
+        if(abs(gradient) < 0.01){
+            std::cout << "converged :)" << std::endl;
+            break;
+        }
+        if(abs(gradient) > 1000){
+            std::cout << "gradient too large :("  << std::endl;
+            break;
+        }
+        
+    }
+    return infs;
+
+}
+
+std::vector<std::vector<double>> dimscan(int index, double increment, std::vector<double> c_lim, double dt, int iters, int jetsamples, std::vector<std::vector<std::vector<std::vector<double>>>> values, std::vector<std::vector<double>> data){
+
+    std::vector<double> c = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
+    double metric = 0;
+    std::vector<std::vector<double>> vs;
+    std::vector<double> v;
+    std::vector<std::vector<double>> errors;
+    std::vector<double> xjs;
+    double cval = 0;
+    double cumulative = 0;
+    for(int i = 0; i<(int(1/increment))+1; i++){
+
+        std::cout << "increment" << std::endl;
+
+
+        cval = increment*i;
+        c[index]= cval;
+        xjs=xj_sample(c,c_lim,dt,iters,jetsamples,data);
+        errors = xj_metric_central(xjs,values);
+        //xjs = xj_sample(c,c_lim,dt,iters,jetsamples,data);    
+        //metric = xj_metric_central(xj_sample,values)
+        
+        v.push_back(double(i));
+        v.push_back(cval);
+        for(int i = 0; i<errors.size(); i++){
+            for(int j = 0; j<errors[0].size(); j++){
+                v.push_back(errors[i][j]);
+                cumulative+=errors[i][j];
+            }
+        }
+        v.push_back(cumulative);
+        std::cout << i << " " << cval << " " << cumulative/49.86 << std::endl;
+        vs.push_back(v);
+        cumulative =0;
+        xjs.clear();
+        errors.clear();
+        v.clear();
+    }
+    return vs;
+}
+
+void filewrite(std::string filename,std::vector<std::vector<double>> rundata){
+
+    std::ofstream file(filename);
+
+    for(int i = 0; i<rundata.size(); i++){
+        for(int j = 0; j<rundata[0].size(); j++){
+            file << rundata[i][j] << " ";
+        }
+        file << std::endl;
+    }
+    file.close();
+
+}
+
 void PSOrun(std::string outfilename,std::vector<std::vector<double> > positions, std::vector<double> c_lim, int steps, std::vector<double> dc, double dt, int iters, int jetsamples, double  gradlim, double bound){
 
     //early cutoff
@@ -1242,62 +1438,28 @@ int main(){
     double c26 = 0.0000002;
 
     std::vector<double> c_lim = {c0,c1,c2,c3,c4,c5,c6,c7,c8,c9,c10,c11,c12,c13,c14,c15,c16,c17,c18,c19,c20,c21,c22,c23,c24,c25,c26};
+    std::vector<double> dc = {c0*0.01,c1*0.01,c2*0.01,c3*0.01,c4*0.01,c5*0.01,c6*0.01,c7*0.01,c8*0.01,c9*0.01,c10*0.01,c11*0.01,c12*0.01,c13*0.01,c14*0.01,c15*0.01,c16*0.01,c17*0.01,c18*0.01,c19*0.01,c20*0.01,c21*0.01,c22*0.01,c23*0.01,c24*0.01,c25*0.01,c26*0.01};    
+
     std::vector<std::vector<std::vector<std::vector<double>>>> values = importdata();
+    std::vector<std::vector<double>> eprof = eprofile("energies.dat");
 
     // TESTING SPACE 
 
-    // 1)
-    
-    std::vector<std::vector<double>> prof; 
-    double E = 500;
-    std::vector<double> ang1;
-    double ang = 0;
-    std::ofstream file("tests/stability.dat");
+    // 1.) test dimscan for varying dT 
+    // 2.) dimscan each variable with correct dt
 
-    std::vector<double> c = {0.,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1.0};
-    std::vector<double> dt = {1,0.5,0.1,0.05,0.01,0.005,0.001};
-    for(int i = 0; i<1000; i++){
-        if(centralityclass(i) != 0){
-            continue;
-        }
-        std::cout << i << std::endl;
-        prof = profile(eventstring(i));
-        for(int j = 0; j<10; j++){
-            ang1 = randoms(1);
-            ang = ang1[0]*2.0*(3.1415926) - 3.1415926; 
-            for(int k = 0; k<dt.size(); k++){
+    std::vector<double> c = {0.5,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
 
-                E = energyloss(c,c_lim,500,ang,prof,dt[k]);
-                //std::cout << dt[k] << std::endl;
-                file << E << " ";
-                std::cout << E << " ";
-            }
-            file << std::endl;
-            std::cout << std::endl;
-        }
-        
-    }
-    file.close();
+    std::vector<std::vector<double>> d0 = dimscan(0,0.05,c_lim,1,5000,10,values,eprof);
+
+    filewrite("tests/dim0_scan1.dat",d0);
     
 
-   //std::vector<double> c = {0.5};
-    /*
-    std::vector<std::vector<double>> data = eprofile("energies.dat");
+    //std::vector<std::vector<double>> dimscan_0 = dimscan()
 
-    std::tuple<int,int> energypicks;
-    std::ofstream file("tests/energies_test.dat");
-
-    for(int i = 0; i<20000; i++){
-        energypicks = energypick(data);
-        file << std::get<0>(energypicks) << " " << std::get<1>(energypicks) << std::endl;
-        std::cout << std::get<0>(energypicks) << " " << std::get<1>(energypicks) << std::endl;
-    }
-    file.close();
-
-    //std::vector<double> c = {0.,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1.0};
-    //std::vector<double> m = xj_sample(c,c_lim,0.1,10,2,data);
-    */
+    //filewrite("c_000.dat",dimscan_0);
     
+
     return 0;
 
 }
