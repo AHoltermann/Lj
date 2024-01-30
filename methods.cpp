@@ -287,7 +287,7 @@ std::vector<double> randoms(int length = 2){
 
 std::tuple<int,int> energypick(std::vector<std::vector<double>> data){
    
-        //std::cout << "energypick" << std::endl;
+        std::cout << "energypick" << std::endl;
 
         std::vector<double>q = randoms(2);
         double x_prob = q[0];
@@ -340,13 +340,13 @@ std::tuple<int,int> energypick(std::vector<std::vector<double>> data){
 }
 
 std::tuple<int,int> positionpick(std::vector<std::vector<double> > prof){
-        //std::cout << "positionpick" << std::endl;
+        std::cout << "positionpick" << std::endl;
 
         std::vector<double>q = randoms(2);
         double x_prob = q[0];
         double y_prob = q[1];
 
-        //std::cout << "xprob: " << x_prob << " yprob: " << y_prob << std::endl;
+        std::cout << "xprob: " << x_prob << " yprob: " << y_prob << std::endl;
     
         int xcount = 0;
         int ycount = 0;
@@ -388,6 +388,7 @@ std::tuple<int,int> positionpick(std::vector<std::vector<double> > prof){
         }
         ycount-=2;
         
+        std::cout << xcount << " " << ycount << std::endl;
         std::tuple<int, int> a = std::make_tuple(xcount, ycount);
         //std::cout<< "finish with x: " << ycount << " y: " << xcount << std::endl;
         return a;
@@ -413,7 +414,7 @@ double weighfour(double x, double y, std::vector<std::vector<double> > profile){
     return (ll+lh+hl+hh)/4;
 }
 
-double pathlength(int e_select, double theta, std::vector<std::vector<double>> profile, double dt){
+std::vector<double> pathlength(double theta, std::vector<std::vector<double>> profile, double dt){
 
     std::tuple<int,int> pos = positionpick(profile);
     double x = 1.0*std::get<0>(pos);
@@ -421,24 +422,18 @@ double pathlength(int e_select, double theta, std::vector<std::vector<double>> p
     double e_x = 0;
     double d = 0;
     double path = 0;
+    double e_path = 0;
     int i = 0;
 
      while(i < 100/dt){
-
         //std::cout << "x: " << x << " y: " << y << " d: " << d << " e_x: " << e_x << " E: " << E << std::endl;
-
         x += dt*cos(theta);
         y += dt*sin(theta);
-
         //d = sqrt((x-1.0*std::get<0>(pos))*(x-1.0*std::get<0>(pos))+(y-1.0*std::get<1>(pos))*(y-1.0*std::get<1>(pos)));
         e_x = weighfour(x,y,profile);
-
-        if(e_select > 0){
-            path+=dt*e_x;
-        }
-        else{
-            path+=dt;
-        }
+        e_path+=dt*e_x;
+        path+=dt;
+        
         if(e_x<=0.00015){
             break;
         }
@@ -446,14 +441,18 @@ double pathlength(int e_select, double theta, std::vector<std::vector<double>> p
             break;
         }
        i+=1; 
-    } 
+    }
 
-    return path;
+    std::vector<double> paths;
+    paths.push_back(path);
+    paths.push_back(e_path); 
+
+    return paths;
 }
 
 double energyloss(std::vector<double> c, std::vector<double> c_lim, double Ei, double theta, std::vector<std::vector<double> > profile, double dt){
 
-    //std::cout << "eloss" << std::endl;
+    std::cout << "eloss" << std::endl;
 
     std::tuple<int,int> pos = positionpick(profile);
     //pos = std::make_tuple(50,50);
@@ -464,6 +463,8 @@ double energyloss(std::vector<double> c, std::vector<double> c_lim, double Ei, d
     double d = 0;
     double d2 = 0;
     int i = 0;
+
+    std::cout << " eloss loop " << std::endl;
 
     while(i < 100/dt){
 
@@ -479,7 +480,7 @@ double energyloss(std::vector<double> c, std::vector<double> c_lim, double Ei, d
         if((E < 1)||(e_x<=0.00015)){
             break;
         }
-        if(x < 2||x> 98||y<2||y>98){
+        if(x < 4||x> 96||y<4||y>96){
             break;
         }
         
@@ -515,6 +516,8 @@ double energyloss(std::vector<double> c, std::vector<double> c_lim, double Ei, d
     } 
     return E;
 }
+
+// checked below 
 
 std::vector<double> xj_sample(std::vector<double> c, std::vector<double> c_lim, double dt, int iters, int jetsamples, std::vector<std::vector<double>> data){
 
@@ -1042,8 +1045,6 @@ std::vector<std::vector<std::vector<std::vector<double>>>> importdata(){
 
 double xj_metric(std::vector<double> xj_sample, std::vector<std::vector<std::vector<std::vector<double>>>> values, int jetsamples){
 
-    std::cout << "xjmetric" << std::endl;
-
     double pt;
     double xj;
     int centrality = 0;
@@ -1186,10 +1187,11 @@ std::vector<std::vector<double>> xj_metric_central(std::vector<double> xj_sample
     return errors;
 }
 
+//basic operations
+
 double compute(std::vector<double> c, std::vector<double> c_lim, double dt, int iters, int jetsamples, std::vector<std::vector<std::vector<std::vector<double>>>> values, std::vector<std::vector<double>> data){
     
     std::cout << "compute" << std::endl;
-
     
     std::vector<double> xj = xj_sample(c,c_lim,dt,iters,jetsamples,data);
     //return xj_metric(xj,values,jetsamples);
@@ -1219,6 +1221,8 @@ std::vector<double> grad(double f,std::vector<double> c, std::vector<double> c_l
     }
     return gradient;
 }
+
+//things to do
 
 int killtimesteps(std::vector<double> c, double bound, std::vector<double> grad, double gradlim){
 
@@ -1337,6 +1341,7 @@ std::vector<std::vector<double>> dimscan(int index, double increment, std::vecto
     std::vector<double> xjs;
     double cval = 0;
     double cumulative = 0;
+
     for(int i = 0; i<(int(1/increment))+1; i++){
 
         std::cout << "increment" << std::endl;
@@ -1351,6 +1356,7 @@ std::vector<std::vector<double>> dimscan(int index, double increment, std::vecto
         
         v.push_back(double(i));
         v.push_back(cval);
+
         for(int i = 0; i<errors.size(); i++){
             for(int j = 0; j<errors[0].size(); j++){
                 v.push_back(errors[i][j]);
@@ -1446,14 +1452,19 @@ int main(){
     // TESTING SPACE 
 
     // 1.) test dimscan for varying dT 
-    // 2.) dimscan each variable with correct dt
+    // 2.) dimscan each variable with correct dt <- or just compute
 
+    
     std::vector<double> c = {0.5,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
 
-    std::vector<std::vector<double>> d0 = dimscan(0,0.05,c_lim,1,5000,10,values,eprof);
+    std::vector<std::vector<double>> d0 = dimscan(0,0.05,c_lim,1,5000,20,values,eprof);
+
 
     filewrite("tests/dim0_scan1.dat",d0);
+
+
     
+
 
     //std::vector<std::vector<double>> dimscan_0 = dimscan()
 
