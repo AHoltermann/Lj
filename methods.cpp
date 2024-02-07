@@ -296,15 +296,13 @@ std::vector<double> randoms(int length = 2){
 
 std::tuple<int,int> energypick(std::vector<std::vector<double>> data){
    
-        std::cout << "energypick" << std::endl;
+        //std::cout << "energypick" << std::endl;
 
         std::vector<double>q = randoms(2);
         double x_prob = q[0];
         double y_prob = q[1];
 
-        std::cout << x_prob << " " << y_prob << std::endl;
-
-        //std::cout << "xprob: " << x_prob << " yprob: " << y_prob << std::endl;
+        //std::cout << x_prob << " " << y_prob << std::endl;
     
         int xcount = 0;
         int ycount = 0;
@@ -354,21 +352,21 @@ std::tuple<int,int> energypick(std::vector<std::vector<double>> data){
         if(ycount < 0){
             ycount =0;
         }
-    std::cout << xcount << " " << ycount << std::endl;
+    //std::cout << xcount << " " << ycount << std::endl;
     //std::tuple<int,int> Es = std::make_tuple(static_cast<int>(subleadingJetPt),static_cast<int>(leadingJetPt));   
     std::tuple<int,int> Es = std::make_tuple(100+xcount*4,20+ycount*4); 
     return Es;
 }
 
 std::tuple<int,int> positionpick(std::vector<std::vector<double> > prof){
-        std::cout << "positionpick" << std::endl;
+        //std::cout << "positionpick" << std::endl;
 
         std::vector<double>q = randoms(2);
         //double x_prob = q[0];
         double x_prob = q[0];
         double y_prob = q[1];
 
-        std::cout << "xprob: " << x_prob << " yprob: " << y_prob << std::endl;
+        //std::cout << "xprob: " << x_prob << " yprob: " << y_prob << std::endl;
     
         int xcount = 0;
         int ycount = 0;
@@ -421,7 +419,7 @@ std::tuple<int,int> positionpick(std::vector<std::vector<double> > prof){
         if(ycount >99){
             std::cout << " caught 100 index" << std::endl;
         }
-        std::cout << xcount << " " << ycount << std::endl;
+        //std::cout << xcount << " " << ycount << std::endl;
         std::tuple<int, int> a = std::make_tuple(xcount, ycount);
         //std::cout<< "finish with x: " << ycount << " y: " << xcount << std::endl;
         return a;
@@ -497,11 +495,20 @@ double energyloss(std::vector<double> c, std::vector<double> c_lim, double Ei, d
     double d2 = 0;
     int i = 0;
 
-    std::cout << " eloss loop " << std::endl;
+    //std::cout << " eloss loop " << std::endl;
 
     while(i < 100/dt){
 
         //std::cout << "x: " << x << " y: " << y << " d: " << d << " e_x: " << e_x << " E: " << E << std::endl;
+
+        if(i > 1){
+            if((E < 1)||(e_x<=0.00015)){
+                break;
+            }
+            if(x < 4||x> 96||y<4||y>96){
+                break;
+            }
+        }
 
         x += dt*cos(theta);
         y += dt*sin(theta);
@@ -510,12 +517,7 @@ double energyloss(std::vector<double> c, std::vector<double> c_lim, double Ei, d
         d += dt;
         e_x = weighfour(x,y,profile);
 
-        if((E < 1)||(e_x<=0.00015)){
-            break;
-        }
-        if(x < 4||x> 96||y<4||y>96){
-            break;
-        }
+        
         
         E = E - c_lim[0]*c[0]*dt; //0.75
         E = E - c_lim[1]*c[1]*d*dt; //0.04
@@ -544,6 +546,8 @@ double energyloss(std::vector<double> c, std::vector<double> c_lim, double Ei, d
         E = E - c_lim[24]*c[24]*(E*E)*(e_x*e_x)*dt; //0.00004;
         E = E - c_lim[25]*c[25]*(E*E)*d*(e_x*e_x)*dt; //0.000004
         E = E - c_lim[26]*c[26]*(E*E)*(d*d)*(e_x*e_x)*dt; //0.0000002
+
+        //std::cout << E << std::endl;
         
        i+=1; 
     } 
@@ -560,15 +564,17 @@ std::vector<double> xj_sample(std::vector<double> c, std::vector<double> c_lim, 
 
     double E1,E2;
     double theta1,theta2;
-    double pt1,pt2;
+    double pt1,pt2,ptL;
     double xj;
+    int index = 0;
     for(int i = 0; i<iters; i++){
 
         std::vector<std::vector<double>>prof = profile(eventstring(i));
 
         for(int j = 0; j<jetsamples; j++){
-            
-            std::cout << "energypick " << std::endl;
+            index = i*jetsamples+j;
+            //std::cout << index << std::endl;
+            //std::cout << "energypick " << std::endl;
             std::tuple<int,int> energypicks = energypick(data);
             E1 = 1.0*std::get<0>(energypicks);
             E2 = 1.0*std::get<1>(energypicks);
@@ -589,27 +595,26 @@ std::vector<double> xj_sample(std::vector<double> c, std::vector<double> c_lim, 
 
             if(pt1 < pt2){
                 xj = pt1/pt2;
+                ptL = pt2;
             }
             else{
                 xj = pt2/pt1;
+                ptL = pt1;
             }
+            xjs[2*index] = ptL;
+            xjs[2*index+1] =xj;
 
-            //std::cout << xj << " " << pt1 << std::endl;
-            //std::cout << i*jetsamples+j << std::endl;
-
-            xjs[2*i] = pt1;
-            xjs[2*i+1] =xj;
-
-            if((i*jetsamples+j)%1000 == 0){
-                std::cout << 1.0*(i*jetsamples+j)/(iters*jetsamples) << std::endl;
+            if((i*jetsamples+j)%500 == 0){
+                std::cout << std::setw(5) <<1.0*(i*jetsamples+j)/(iters*jetsamples) << " " << std::setw(5) << xjs[2*index] << " " << xjs[2*index+1] << std::endl;
             }
-
         }
 
     }
-    
+
     return xjs;
+
 }
+    
 
 std::vector<std::vector<std::vector<std::vector<double>>>> importdata(){
     
@@ -1140,8 +1145,7 @@ double xj_metric(std::vector<double> xj_sample, std::vector<std::vector<std::vec
 std::vector<std::vector<std::vector<double>>> xj_metric_central(std::vector<double> xj_sample, std::vector<std::vector<std::vector<std::vector<double>>>> values){
     
     //std::cout << "xjmetric" << std::endl;
-
-    std::vector<double> jetfreq = {
+    /*std::vector<double> jetfreq = {
     0.48078,
     0.18828,
     0.1396,
@@ -1154,23 +1158,28 @@ std::vector<std::vector<std::vector<double>>> xj_metric_central(std::vector<doub
     0.00264,
     0.00188,
     0.0004,
-    };
+    };*/
     
     double pt;
     double xj;
     int pTbin = 0;
     int xjbin = 0;
+    double diff = 0;
+    double xj_binval = 0;
+    double xj_binerr = 0;
+    //double totint = 0;
+    std::vector<double> integral(12,0);
+
 
     std::vector<std::vector<double>> xj_exp = values[0][0];
     std::vector<std::vector<double>> xj_exp_err = values[1][0];
     std::vector<std::vector<double>> xj_exp_syst = values[2][0];
-    //std::vector<std::vector<double>>> xj_data(5, std::vector<std::vector<double>>(13, std::vector<double>(10)));
-    std::vector<std::vector<double>> xj_data(12, std::vector<double>(10));
-    std::vector<std::vector<double>> errors(12, std::vector<double>(10));
-    std::vector<double> error(10,0);
-    std::vector<std::vector<std::vector<double>>> returnarr(2,std::vector<std::vector<double>>(12, std::vector<double>(10)));
-    //std::vector<std::vector<std::vector<double>>> xj_data_err(5, std::vector<std::vector<double>>(12, std::vector<double>(10)));
-   
+    std::vector<std::vector<double>> xj_data(12, std::vector<double>(10,0));
+    std::vector<std::vector<double>> xj_true_errors(12, std::vector<double>(10,0));
+    std::vector<std::vector<double>> errors(12, std::vector<double>(10,0));
+    std::vector<std::vector<std::vector<double>>> returnarr(2,std::vector<std::vector<double>>(12, std::vector<double>(10,0)));
+    
+    // fill xj data array
     for(int i = 0; i<xj_sample.size()/2-2; i++){
 
         pt = xj_sample[2*i];
@@ -1185,43 +1194,172 @@ std::vector<std::vector<std::vector<double>>> xj_metric_central(std::vector<doub
         }
         xj_data[pTbin][xjbin] +=1;    
     }
-    std::vector<double> integral(12);
+
+    // integrate and normalize each xj distribution for a fixed pT by calculating the integral
 
     for(int k = 0; k<12; k++){
         for(int l = 0; l<10; l++){
-            if(xj_data[k][l] >0){
+            //if(xj_data[k][l] >0){
             //std::cout << k << " " << l << " " << xj_data[k][l] << std::endl;
-            }
-            integral[k]+=xj_data[k][l]*xj_binwidth(l);       
+            //}
+            integral[k]+=xj_data[k][l]*xj_binwidth(l);      
         }
-        //std::cout << "integral: " << k << " " << integral[k] <<std::endl;
     }
 
-    double diff = 0;
-
-    std::cout << "xjmetric fill errors" << std::endl;
-
-
     for(int k = 0; k<12; k++){
-        error.clear();
         for(int l = 0; l<10; l++){
             if(integral[k] > 0){
-            xj_data[k][l] /= integral[k];
+                xj_binval = xj_data[k][l] /= integral[k];
+                //xj_binerr = sqrt(xj_data[k][l])/integral[k];
             }
-            else {xj_data[k][l] = 0;};
-            diff += (xj_data[k][l] - xj_exp[k][l])*(xj_data[k][l] - xj_exp[k][l])*(xj_binwidth(l))*(1/((xj_exp_err[k][l]*xj_exp_err[k][l])+(xj_exp_syst[k][l]*xj_exp_syst[k][l])))*jetfreq[k];
-            //std::cout << "error: " << k << " " << l << " " << (xj_data[k][l] - xj_exp[k][l]) << std::endl; 
-            error[l] = ((xj_data[k][l] - xj_exp[k][l])*(xj_data[k][l] - xj_exp[k][l])*(xj_binwidth(l))*(1/((xj_exp_err[k][l]*xj_exp_err[k][l])+(xj_exp_syst[k][l]*xj_exp_syst[k][l])))*jetfreq[k]);
+            else {
+                xj_binval = 0;
+                xj_binerr = 0;
+            };
+            //diff += (xj_binwidth(l))*sqrt((xj_binval - xj_exp[k][l])*(xj_binval - xj_exp[k][l])*(1/((xj_exp_err[k][l]*xj_exp_err[k][l])+(xj_exp_syst[k][l]*xj_exp_syst[k][l])+xj_binerr*xj_binerr)));
+                    diff += (xj_binwidth(l))*sqrt((xj_binval - xj_exp[k][l])*(xj_binval - xj_exp[k][l])*(1/((xj_exp_err[k][l]*xj_exp_err[k][l])+(xj_exp_syst[k][l]*xj_exp_syst[k][l]))));
+             errors[k][l] = (xj_binwidth(l))*sqrt((xj_binval - xj_exp[k][l])*(xj_binval - xj_exp[k][l])*(1/((xj_exp_err[k][l]*xj_exp_err[k][l])+(xj_exp_syst[k][l]*xj_exp_syst[k][l]))));
+            
+            //errors[k][l] = (xj_binwidth(l))*sqrt((xj_binval - xj_exp[k][l])*(xj_binval - xj_exp[k][l])*(1/((xj_exp_err[k][l]*xj_exp_err[k][l])+(xj_exp_syst[k][l]*xj_exp_syst[k][l])+xj_binerr*xj_binerr)));
+           
         }
-        errors[k] = error;
         
     }
     
     returnarr[0] = xj_data;
     returnarr[1] = errors;
-    std::cout << "xj metric run with values: " << diff/46.0987 << std::endl;
+    std::cout << "xj metric run with values: " << diff << std::endl;
     //return diff/46.0987;
     return returnarr;
+}
+
+std::tuple<std::vector<double>,std::vector<double>> xj_metric_central_aux(std::vector<std::vector<double>> xj_hists, std::vector<std::vector<std::vector<std::vector<double>>>> values){
+
+    double xj_binval=0;
+    std::vector<double> pctdiff(12,0);
+    std::vector<double> pearson(12,0);
+
+    std::vector<double> mean_vals(12,0);
+    std::vector<double> mean_hists(12,0);
+
+    std::vector<double> std_vals(12,0);
+    std::vector<double> std_hists(12,0);
+
+    std::vector<std::vector<double>> xj_exp = values[0][0];
+    std::vector<std::vector<double>> xj_exp_err = values[1][0];
+    std::vector<std::vector<double>> xj_exp_syst = values[2][0];
+
+
+    std::vector<std::vector<double>> xj_true_errors(12, std::vector<double>(10,0));
+    std::vector<std::vector<double>> errors(12, std::vector<double>(10,0));
+    std::vector<std::vector<std::vector<double>>> returnarr(2,std::vector<std::vector<double>>(12, std::vector<double>(10,0)));
+
+    for(int i = 0; i<12; i++){
+        for(int j = 0; j<10; j++){
+             mean_vals[i] += xj_exp[i][j]*xj_binwidth(j);
+             mean_hists[i] += xj_hists[i][j]*xj_binwidth(j);
+        }
+    }
+    for(int i = 0; i<12; i++){
+        for(int j = 0; j<10; j++){
+             std_vals[i] += (xj_exp[i][j] - mean_vals[i])*(xj_exp[i][j] - mean_vals[i])*xj_binwidth(j);
+             std_hists[i] += (xj_hists[i][j] - mean_hists[i])*(xj_hists[i][j] - mean_hists[i])*xj_binwidth(j);
+        }
+    }
+
+
+    // integrate and normalize each xj distribution for a fixed pT by calculating the integral
+
+    for(int k = 0; k<12; k++){
+        for(int l = 0; l<10; l++){
+            xj_binval = xj_hists[k][l];
+            pctdiff[k] += (xj_binwidth(l))*abs(xj_binval - xj_exp[k][l])*0.5;
+            pearson[k] += ((xj_exp[k][l] - mean_vals[k])*(xj_hists[k][l] - mean_hists[k])*xj_binwidth(l))/sqrt(std_hists[k]*std_vals[k]);
+            
+        }
+        
+    }
+    
+    
+    std::tuple<std::vector<double>,std::vector<double>> a = std::make_tuple(pctdiff,pearson);
+    //return diff/46.0987;
+    return a;
+}
+
+std::vector<std::vector<double>> raa_metric(std::vector<double> xj_sample){
+
+    // instantiate # of jets
+
+    int p = 0;
+    double raa_val = 0;
+    double raa_uncert = 0;
+    int jets = 1000000/(xj_sample.size()/2);
+    std::vector<double> raa_data = {0.402193,0.440119,0.489933,0.540745,0.584472,0.593024,0.61469,0.631513,0.654529,0.659,0.668449,0.664496};
+    std::vector<double> raa_stat = {0.00239022,0.00290581,0.00380458,0.00509938,0.00327803,0.00253421,0.00272126,0.00377121,0.00540125,0.00763996,0.009654,0.0193572};
+    std::vector<double> raa_syst = {0.0278413,0.0246902,0.0225583,0.0302581,0.030389,0.0327718,0.0336263,0.0360217,0.0373508,0.0392692,0.0474922,0.0483751};
+    
+
+    std::vector<int> pythia_data = {482934,187996,140144,75555,50381,26371,16458,9595,5251,2835,1958,522};
+    std::vector<double> raa_model(12,0);
+    //std::vector<double> raa_model_uncert(12,0);
+
+    for(int i =0; i<xj_sample.size()/2; i++){
+            p = xj_sample[2*i]*1.0;
+
+            if((p >= 100) && (p < 112.202)){
+                raa_model[0]+=jets;
+            }
+            else if((p >= 112.202) && (p < 125.893)){
+                raa_model[1]+=jets;
+            }
+            else if((p >= 125.893) && (p < 141.254)){
+                raa_model[2]+=jets;
+            }
+            else if((p >= 141.254) && (p < 158.489)){
+                raa_model[3]+=jets;
+            }
+            else if((p >= 158.489) && (p < 177.828)){
+                raa_model[4]+=jets;
+            }
+            else if((p >= 177.828) && (p < 199.526)){
+                raa_model[5]+=jets;
+            }
+            else if((p >= 199.526) && (p < 223.872)){
+                raa_model[6]+=jets;
+            }
+            else if((p >= 223.872) && (p < 251.189)){
+                raa_model[7]+=jets;
+            }
+            else if((p >= 251.189) && (p < 281.838)){
+                raa_model[8]+=jets;
+            }
+            else if((p >= 281.838) && (p < 316.118)){
+                raa_model[9]+=jets;
+            }
+            else if((p >= 316.118) && (p < 398)){
+                raa_model[10]+=jets;
+            }
+            else if((p >= 398) && (p < 500)){
+                raa_model[11]+=jets;
+            }
+          
+        }
+
+
+    std::vector<double> raa_err(12,0);
+
+    for(int j = 0; j<12; j++){
+
+        raa_val = 1.0*raa_model[j]/pythia_data[j];
+        raa_uncert = 1.0*sqrt(raa_model[j])/pythia_data[j];
+
+        //raa_err[j] = sqrt((raa_val - raa_data[j])*(raa_val - raa_data[j])/(raa_stat[j]*raa_stat[j] + raa_syst[j]*raa_syst[j]+raa_uncert*raa_uncert));
+        raa_err[j] = sqrt((raa_val - raa_data[j])*(raa_val - raa_data[j])/(raa_stat[j]*raa_stat[j] + raa_syst[j]*raa_syst[j]+raa_uncert*raa_uncert));
+        raa_model[j]/=pythia_data[j];
+    }
+
+    std::vector<std::vector<double>> raas = {raa_model,raa_err};
+    return raas;
 }
 
 double compute(std::vector<double> c, std::vector<double> c_lim, double dt, int iters, int jetsamples, std::vector<std::vector<std::vector<std::vector<double>>>> values, std::vector<std::vector<double>> data){
@@ -1241,16 +1379,20 @@ double compute(std::vector<double> c, std::vector<double> c_lim, double dt, int 
     return diff;
 }
 
-std::vector<std::vector<std::vector<double>>> compute2(std::vector<double> c, std::vector<double> c_lim, double dt, int iters, int jetsamples, std::vector<std::vector<std::vector<std::vector<double>>>> values, std::vector<std::vector<double>> data){
+std::tuple<std::vector<std::vector<std::vector<double>>>,std::vector<std::vector<double>>> compute2(std::vector<double> c, std::vector<double> c_lim, double dt, int iters, int jetsamples, std::vector<std::vector<std::vector<std::vector<double>>>> values, std::vector<std::vector<double>> data){
     std::vector<double> xj = xj_sample(c,c_lim,dt,iters,jetsamples,data);
     std::vector<std::vector<std::vector<double>>> a = xj_metric_central(xj,values);
-    return a;
+    std::vector<std::vector<double>> raa = raa_metric(xj);
+    return std::make_tuple(a,raa);
 }
 
-void filewrite(std::string filename,std::vector<double> c, std::vector<double> c_lim, double dt, int iters, int jetsamples, std::vector<std::vector<std::vector<double>>> xj_metric_central){
+void filewrite(std::string filename,std::vector<double> c, std::vector<double> c_lim, double dt, int iters, int jetsamples, std::vector<std::vector<std::vector<double>>> xj_metric_central,std::vector<std::vector<double>> raametric,std::vector<double> pearson, std::vector<double> pct){
 
     std::ofstream file(filename);
     double count;
+    double raa_err=0;
+    double pct_err=0;
+    double pearson_err = 0;
 
     file << "C Vector: ";
     for(int m = 0; m<c.size(); m++){
@@ -1263,40 +1405,59 @@ void filewrite(std::string filename,std::vector<double> c, std::vector<double> c
         file << c_lim[m] << " ";
     }
     file << std::endl;
-    
+
     file << "dt: " << dt << std::endl;
     file << "events: " << iters << std::endl;
     file << "dijets: " << iters*jetsamples << std::endl;
-    file << "xj histogram raw data" << std::endl;
 
+    
+    file << "Raa: "; 
+    for(int n = 0; n<raametric[0].size(); n++){
+        file << std::setw(10) << raametric[0][n] << " ";
+    }
+    file << std::endl;
+    file << "Raa errors: ";
+    for(int n = 0; n<raametric[0].size(); n++){
+        file << std::setw(10) << raametric[1][n] << " ";
+        raa_err += raametric[1][n];
+    }
+    file << std::endl;
+
+    file << "Pearson: ";
+    for(int n = 0; n<pearson.size(); n++){
+        file << std::setw(10) << pearson[n] << " ";
+        pearson_err+= pearson[n];
+    }
+    file << std::endl;
+    file << "Percent: ";
+    for(int n = 0; n<pct.size(); n++){
+        file << std::setw(10) << pct[n] << " ";
+        pct_err += pct[n];
+    }
+    file << std::endl;
+
+
+    file << "xj histogram data" << std::endl;
     for(int i = 0; i<xj_metric_central[0].size(); i++){
-        if(i == 0){
-            file << " bin 0 " << "bin 1 " << "bin 2 " << "bin 3 " <<"bin 4 " <<"bin 5 " <<"bin 6 " <<"bin 7 " <<"bin 8 " <<"bin 9 " << std::endl;
-        }
         for(int j = 0; j<xj_metric_central[0][1].size(); j++){
-            if(j == 0){
-            file << "pT bin " << i << " ";
-            }
-            file << xj_metric_central[0][i][j] << " ";
+            file << std::setw(10) << xj_metric_central[0][i][j] << " ";
         }
         file << std::endl;
     }
 
     file << "xj histogram errors" << std::endl;
     for(int i = 0; i<xj_metric_central[1].size(); i++){
-        if(i == 0){
-            file << " " << "bin 0 " << "bin 1 " << "bin 2 " << "bin 3 " <<"bin 4 " <<"bin 5 " <<"bin 6 " <<"bin 7 " <<"bin 8 " <<"bin 9 " << std::endl;
-        }
         for(int j = 0; j<xj_metric_central[1][1].size(); j++){
-            if(j == 0){
-            file << "pT bin " << i << " ";
-            }
-            file << xj_metric_central[1][i][j] << " ";
+            file << std::setw(10) << xj_metric_central[1][i][j] << " ";
             count+= xj_metric_central[1][i][j];
         }
         file << std::endl;
     }    
-    file << "total error: " << count << std::endl;
+    
+    file << "xj error: " << count << std::endl;
+    file << "Raa error: " << raa_err << std::endl;
+    file << "Pearson error:  " << pearson_err << std::endl;
+    file << "Percent error: " << pct_err << std::endl;
 
     file.close();
 
@@ -1429,26 +1590,40 @@ void dimscan(std::string filetag, int index, double increment, std::vector<doubl
 
     std::vector<double> c = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
     std::vector<std::vector<std::vector<double>>> xjmetric(2,std::vector<std::vector<double>>(12, std::vector<double> (10)));
+    std::vector<std::vector<double>> raametric(2,std::vector<double>(12,0));
+
+    std::vector<double> pearson(12,0);
+    std::vector<double> pct(12,0);
     double cval = 0;
     double cumulative = 0;
+    double raa_err = 0;
 
-    for(int i = 5; i<(int(1/increment))+1; i++){
+    for(int i = 13; i<(int(3/increment))+1; i++){
 
-        std::cout << "increment " << i << std::endl;
+        //std::cout << "increment " << i << std::endl;
         cval = increment*i;
         c[index]= cval;
         
-        xjmetric = compute2(c,c_lim,dt,iters,jetsamples,values,data);
-        filewrite(filename(filetag,i),c,c_lim,dt,iters,jetsamples,xjmetric);
+        std::tuple<std::vector<std::vector<std::vector<double>>>,std::vector<std::vector<double>>> comp2 = compute2(c,c_lim,dt,iters,jetsamples,values,data);
+        xjmetric= std::get<0>(comp2);
+        raametric = std::get<1>(comp2);
+        std::tuple<std::vector<double>,std::vector<double>> aux = xj_metric_central_aux(xjmetric[0],values);
+        pearson = std::get<1>(aux);
+        pct = std::get<0>(aux);
+        filewrite(filename(filetag,i),c,c_lim,dt,iters,jetsamples,xjmetric,raametric,pearson,pct);
 
         for(int i = 0; i<xjmetric[1].size(); i++){
             for(int j = 0; j<xjmetric[1][0].size(); j++){
                 cumulative+=xjmetric[1][i][j];
             }
         }
-        std::cout << i << " " << cval << " " << cumulative/46.0987 << std::endl;
-        cumulative =0;
         
+        for(int q = 0; q<raametric[1].size(); q++){
+            raa_err+= raametric[1][q];
+        }
+        std::cout << i << " " << cval << " xj error: " << cumulative << " Raa error: " << raa_err << std::endl;
+        cumulative =0;
+        raa_err = 0;
     }
     
 }
@@ -1508,6 +1683,7 @@ int main(){
     double c25 = 0.000004;
     double c26 = 0.0000002;
 
+    std::vector<double> c  = {0.2,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
     std::vector<double> c_lim = {c0,c1,c2,c3,c4,c5,c6,c7,c8,c9,c10,c11,c12,c13,c14,c15,c16,c17,c18,c19,c20,c21,c22,c23,c24,c25,c26};
     std::vector<double> dc = {c0*0.01,c1*0.01,c2*0.01,c3*0.01,c4*0.01,c5*0.01,c6*0.01,c7*0.01,c8*0.01,c9*0.01,c10*0.01,c11*0.01,c12*0.01,c13*0.01,c14*0.01,c15*0.01,c16*0.01,c17*0.01,c18*0.01,c19*0.01,c20*0.01,c21*0.01,c22*0.01,c23*0.01,c24*0.01,c25*0.01,c26*0.01};    
 
@@ -1519,23 +1695,28 @@ int main(){
     // 1.) test dimscan for varying dT 
     // 2.) dimscan each variable with correct dt <- or just compute
 
-
-
-    std::vector<double> c = {0.5,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
-
-    dimscan("idxpass_0_",0,0.05,c_lim,1,5000,20,values,eprof);
-
-    
-    //filewrite("tests/dim0_scan1.dat",d0);
-
-
     
 
-
-    //std::vector<std::vector<double>> dimscan_0 = dimscan()
-
-    //filewrite("c_000.dat",dimscan_0);
     
+    dimscan("idxpass/idx_1/idxpass_1_",1,0.1,c_lim,1,5000,20,values,eprof);
+
+    /*std::vector<std::vector<std::vector<double>>> xjmetric;
+    std::vector<std::vector<double>> raametric;
+    double dt = 1;
+    for(int i = 1; i<11; i++){
+
+        int jetsamples = 10;
+        int iters = 500*i;
+
+        for(int j = 0; j<5; j++){
+            std::tuple<std::vector<std::vector<std::vector<double>>>,std::vector<std::vector<double>>> comp2 = compute2(c,c_lim,dt,iters,jetsamples,values,eprof);
+            xjmetric= std::get<0>(comp2);
+            raametric = std::get<1>(comp2);
+            filewrite(filename("jetstest",i*5+j),c,c_lim,dt,iters,jetsamples,xjmetric,raametric);
+
+        }        
+
+    }*/
 
     return 0;
 
