@@ -17,14 +17,14 @@ std::string eventstring(int number = 6) {
     // returns string pointing to n-th file name 
     std::ostringstream filename;
     //filename << "newevents.dat/" << std::setw(3) << std::setfill('0') << number << ".dat";
-    filename << "pbpb_50k.dat/" << std::setw(4) << std::setfill('0') << number << ".dat";
+    filename << "pbpb_50k/" << std::setw(4) << std::setfill('0') << number << ".dat";
     return filename.str();
 }
 
 std::string filename(std::string tag, int number){
 
     std::ostringstream filename;
-    filename << tag << number << ".dat" << std::endl;
+    filename << tag << number << ".dat";
     return filename.str();
 }
 
@@ -457,6 +457,16 @@ std::vector<double> pathlength(double theta, std::vector<std::vector<double>> pr
     int i = 0;
 
      while(i < 100/dt){
+
+        if(i > 1){
+            if(e_x<=0.00015){
+                break;
+            }
+        }
+        if(x < 4||x> 96||y<4||y>96){
+                break;
+            }
+
         //std::cout << "x: " << x << " y: " << y << " d: " << d << " e_x: " << e_x << " E: " << E << std::endl;
         x += dt*cos(theta);
         y += dt*sin(theta);
@@ -465,12 +475,7 @@ std::vector<double> pathlength(double theta, std::vector<std::vector<double>> pr
         e_path+=dt*e_x;
         path+=dt;
         
-        if(e_x<=0.00015){
-            break;
-        }
-        if(x < 2||x> 98||y<2||y>98){
-            break;
-        }
+
        i+=1; 
     }
 
@@ -502,13 +507,13 @@ double energyloss(std::vector<double> c, std::vector<double> c_lim, double Ei, d
         //std::cout << "x: " << x << " y: " << y << " d: " << d << " e_x: " << e_x << " E: " << E << std::endl;
 
         if(i > 1){
-            if((E < 1)||(e_x<=0.00015)){
-                break;
-            }
-            if(x < 4||x> 96||y<4||y>96){
+            if((E < 28)||(e_x<=0.00015)){
                 break;
             }
         }
+        if(x < 4||x> 96||y<4||y>96){
+                break;
+            }
 
         x += dt*cos(theta);
         y += dt*sin(theta);
@@ -591,6 +596,7 @@ std::vector<double> xj_sample(std::vector<double> c, std::vector<double> c_lim, 
             pt1 = energyloss(c,c_lim,E1,theta1,prof,dt);
             pt2 = energyloss(c,c_lim,E2,theta2,prof,dt);
 
+           
             //std::cout << pt1 << " " << pt2 << std::endl;
 
             if(pt1 < pt2){
@@ -1210,17 +1216,17 @@ std::vector<std::vector<std::vector<double>>> xj_metric_central(std::vector<doub
         for(int l = 0; l<10; l++){
             if(integral[k] > 0){
                 xj_binval = xj_data[k][l] /= integral[k];
-                //xj_binerr = sqrt(xj_data[k][l])/integral[k];
+                xj_binerr = sqrt(xj_data[k][l])/integral[k];
             }
             else {
                 xj_binval = 0;
                 xj_binerr = 0;
             };
-            //diff += (xj_binwidth(l))*sqrt((xj_binval - xj_exp[k][l])*(xj_binval - xj_exp[k][l])*(1/((xj_exp_err[k][l]*xj_exp_err[k][l])+(xj_exp_syst[k][l]*xj_exp_syst[k][l])+xj_binerr*xj_binerr)));
-                    diff += (xj_binwidth(l))*sqrt((xj_binval - xj_exp[k][l])*(xj_binval - xj_exp[k][l])*(1/((xj_exp_err[k][l]*xj_exp_err[k][l])+(xj_exp_syst[k][l]*xj_exp_syst[k][l]))));
-             errors[k][l] = (xj_binwidth(l))*sqrt((xj_binval - xj_exp[k][l])*(xj_binval - xj_exp[k][l])*(1/((xj_exp_err[k][l]*xj_exp_err[k][l])+(xj_exp_syst[k][l]*xj_exp_syst[k][l]))));
+            diff += (xj_binwidth(l))*sqrt((xj_binval - xj_exp[k][l])*(xj_binval - xj_exp[k][l])*(1/((xj_exp_err[k][l]*xj_exp_err[k][l])+(xj_exp_syst[k][l]*xj_exp_syst[k][l])+xj_binerr*xj_binerr)));
+             //diff += (xj_binwidth(l))*sqrt((xj_binval - xj_exp[k][l])*(xj_binval - xj_exp[k][l])*(1/((xj_exp_err[k][l]*xj_exp_err[k][l])+(xj_exp_syst[k][l]*xj_exp_syst[k][l]))));
+             //errors[k][l] = (xj_binwidth(l))*sqrt((xj_binval - xj_exp[k][l])*(xj_binval - xj_exp[k][l])*(1/((xj_exp_err[k][l]*xj_exp_err[k][l])+(xj_exp_syst[k][l]*xj_exp_syst[k][l]))));
             
-            //errors[k][l] = (xj_binwidth(l))*sqrt((xj_binval - xj_exp[k][l])*(xj_binval - xj_exp[k][l])*(1/((xj_exp_err[k][l]*xj_exp_err[k][l])+(xj_exp_syst[k][l]*xj_exp_syst[k][l])+xj_binerr*xj_binerr)));
+            errors[k][l] = (xj_binwidth(l))*sqrt((xj_binval - xj_exp[k][l])*(xj_binval - xj_exp[k][l])*(1/((xj_exp_err[k][l]*xj_exp_err[k][l])+(xj_exp_syst[k][l]*xj_exp_syst[k][l])+xj_binerr*xj_binerr)));
            
         }
         
@@ -1598,7 +1604,7 @@ void dimscan(std::string filetag, int index, double increment, std::vector<doubl
     double cumulative = 0;
     double raa_err = 0;
 
-    for(int i = 13; i<(int(3/increment))+1; i++){
+    for(int i = 0; i<(int(3/increment))+1; i++){
 
         //std::cout << "increment " << i << std::endl;
         cval = increment*i;
@@ -1698,7 +1704,7 @@ int main(){
     
 
     
-    dimscan("idxpass/idx_1/idxpass_1_",1,0.1,c_lim,1,5000,20,values,eprof);
+    dimscan("idxpass/idx_4/idxpass_4_",4,0.1,c_lim,1,5000,20,values,eprof);
 
     /*std::vector<std::vector<std::vector<double>>> xjmetric;
     std::vector<std::vector<double>> raametric;
