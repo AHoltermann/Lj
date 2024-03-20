@@ -139,7 +139,7 @@ int pTsort(double p = 0){
         n = 11;
     }
     else if(p >= 562){
-        n = 12;
+        n = -1;
     }
     else{
         n = -1;
@@ -716,11 +716,13 @@ vector<vector<double>> xj_dist(vector<double> xj_sample){
     
     // fill xj data array
     for(int i = 0; i<xj_sample.size()/2; i++){
-
+        //cout << "issue1 " << endl;
         pt = xj_sample[2*i];
         xj = xj_sample[2*i+1];
+        //cout << "issue2 " << endl;
         pTbin = pTsort(pt);
         xjbin = xjsort(xj);
+        //cout << "issue3 " << endl;
 
         //cout << pt << " " << xj << " " << pTbin << " " << xjbin << endl;
 
@@ -738,7 +740,10 @@ vector<vector<vector<double>>> coag_data(vector<double> xj_sample,int subsamples
         int n = xj_sample.size()/subsamples;
         vector<vector<double>> xjs = splitArray(xj_sample,n);
         vector<vector<vector<double>>> dists(subsamples,vector<vector<double>>(12,vector<double>(10,0)));
-        for(int i = 0; i<xjs.size(); i++){
+        cout << "subsamples: " << subsamples << endl;
+        cout << "size" << xjs.size();
+        for(int i = 0; i<subsamples; i++){
+            cout << xjs[i].size() << endl;
             vector<vector<double>> a = xj_dist(xjs[i]);
             dists[i] = a;
         }
@@ -757,6 +762,7 @@ vector<vector<double>> data_dist(double njets, vector<vector<vector<vector<doubl
     for(int i = 0; i<r.size(); i++){
         for(int j = 0; j<r[0].size(); j++){
            r[i][j] = xj_exp[i][j]*raa_data[i]*(njets)*pythia_data[i]*xj_binwidth(j);
+           //r[i][j] = xj_exp[i][j]*raa_data[i]*(njets)*pythia_data[i];
         }
     }
 
@@ -774,6 +780,8 @@ vector<vector<double>> uncert_factors(double njets){
     for(int i = 0; i<r.size(); i++){
         for(int j = 0; j<r[0].size(); j++){
            r[i][j] = raa_data[i]*(njets)*pythia_data[i]*xj_binwidth(j);
+           //r[i][j] = raa_data[i]*(njets)*pythia_data[i];
+           
         }
     }
 
@@ -900,7 +908,7 @@ double determinantFromCholesky(const std::vector<std::vector<double>>& L) {
     int n = L.size();
     double determinant = 1.0;
     for (int i = 0; i < n; ++i) {
-        cout << L[i][i] << endl;
+        //cout << L[i][i] << endl;
         //determinant *= L[i][i] * L[i][i]; // Squaring the diagonal elements of L
         determinant += 2*log(L[i][i]);
     }
@@ -956,6 +964,17 @@ double metricprod(vector<double> x, vector<double> y, vector<vector<double>> M){
     }
 
     return v;
+}
+
+double residuals(vector<vector<vector<double>>> xj_dists, vector<vector<vector<vector<double>>>> values,double njets){
+
+    vector<double> mu_x = vectorize(xj_mean(xj_dists));
+    vector<double> mu_y = vectorize(data_dist(njets,values));  
+    double a = 0;
+    for(int i = 0; i< mu_x.size(); i++){
+        a+= (mu_x[i] - mu_y[i])*(mu_x[i] - mu_y[i]);
+    }
+    return a;
 }
 
 double loglikelihood(vector<vector<vector<double>>> xj_dists, vector<vector<vector<vector<double>>>> values,double njets){
