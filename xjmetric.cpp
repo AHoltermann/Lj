@@ -740,8 +740,8 @@ vector<vector<vector<double>>> coag_data(vector<double> xj_sample,int subsamples
         int n = xj_sample.size()/subsamples;
         vector<vector<double>> xjs = splitArray(xj_sample,n);
         vector<vector<vector<double>>> dists(subsamples,vector<vector<double>>(12,vector<double>(10,0)));
-        cout << "subsamples: " << subsamples << endl;
-        cout << "size" << xjs.size();
+        //cout << "subsamples: " << subsamples << endl;
+        //cout << "size" << xjs.size();
         for(int i = 0; i<subsamples; i++){
             cout << xjs[i].size() << endl;
             vector<vector<double>> a = xj_dist(xjs[i]);
@@ -800,7 +800,6 @@ vector<vector<double>> xj_mean(vector<vector<vector<double>>> xj_dists){
     }
     return xj_mean;
 }
-
 
 vector<vector<double>> xj_stddev(vector<vector<vector<double>>> xj_dists){
 
