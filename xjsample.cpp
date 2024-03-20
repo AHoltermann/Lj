@@ -129,12 +129,16 @@ vector<double> gauss_randoms(int length){
     return m;
 }
 
-double temp_fraction(double dt){
-    if(dt == 0){
+double temp_fraction(double dt2){
+    double dt = dt2/5;
+    if(dt < 0.6){
         return 0;
     }
     else{
         double T = 380*pow(dt,-1/2.5);
+        if(T < 150){
+            return 0;
+        }
         double e1 = 12/(1+exp(0.025*(180-380)));
         double e = 12/(1+exp(0.025*(180-T)));
         // cout << setw(12) << dt << setw(12) << T << setw(12) << e/e1 << endl;
