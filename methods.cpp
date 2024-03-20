@@ -10,1657 +10,207 @@
 #include <stdlib.h>
 #include <time.h>
 #include <random>
+//#include "xjsample.cpp"
+#include "xjmetric.cpp"
 
+using namespace std;
 
-std::string eventstring(int number = 6) {
-    // Assuming the format is "newevents.dat/XXX.dat"
-    // returns string pointing to n-th file name 
-    std::ostringstream filename;
-    //filename << "newevents.dat/" << std::setw(3) << std::setfill('0') << number << ".dat";
-    filename << "pbpb_50k/" << std::setw(4) << std::setfill('0') << number << ".dat";
-    return filename.str();
-}
+class datapoint{
 
-std::string filename(std::string tag, int number){
+    public:
+        vector<double> c; // c vector
+        double dt; // timestep
+        int events; // should be up to +5000 trento events used
+        int jetsamples; // jets/event 
+        int subsamples; // subdivisions of the xj_sample vector to be made
+        string name;
 
-    std::ostringstream filename;
-    filename << tag << number << ".dat";
-    return filename.str();
-}
+    datapoint(vector<double> cvec,string names){
+        c = cvec;
+        dt = 1;
+        events = 1;
+        jetsamples = 100;
+        subsamples = 10;
+        name = names;
+    }
 
-std::vector<std::vector<double>> profile(std::string filename =  "newevents.dat/006.dat") {
-    //given a TRENTO File, outputs a 2d array containing the information here
-    std::vector<std::vector<double> > result;
-    result.reserve(100);
+    datapoint(vector<double> cvec,double timestep,int nevents,int jetsampless,int subsampless,string names){
+        c = cvec;
+        dt = timestep;
+        events = nevents;
+        jetsamples = jetsampless;
+        subsamples = subsampless;
+        name = names;
+    }
 
-    // Open the file
-    std::ifstream file(filename);
-    // Read each line from the file - skipping the header (first 8 lines)
-    std::string line;
-    for (int i = 0; i < 8; ++i) {
-        std::string dummyLine;
-        std::getline(file, dummyLine);
+    vector<double> xjsample(vector<double> c_lim){
+        cout << "xj_sample" << endl;
+        vector<double> xjs = xj_sample(c,c_lim,dt,events,jetsamples);
+        return xjs;
+    }
+
+    vector<vector<vector<double>>> coag(vector<double> xj_sample){
+        cout << "coag" << endl;
+        return coag_data(xj_sample,subsamples);
+    
+    }
+
+    vector<vector<double>> mean_data(vector<vector<vector<double>>> dists){
+        cout << "averaging" << endl;
+        return xj_mean(dists);
+    }
+
+    vector<vector<double>> std_data(vector<vector<vector<double>>> dists){
+        cout << "variances" << endl;
+        return xj_stddev(dists);
+    }
+
+    double likelihood(vector<vector<vector<double>>> dists,vector<vector<vector<vector<double>>>> values){
+        cout << "llh" << endl;
+        //return loglikelihood(dists,values,1.0*events*jetsamples/subsamples);
+        return residuals(dists,values,1.0*events*jetsamples/subsamples);
     }
     
-    while (std::getline(file, line)) {
-        std::vector<double> row;
-        row.reserve(100);
-        std::istringstream iss(line);
-        double value;
-
-        // Read each value from the line
-        while (iss >> value) {
-            row.push_back(value);
-            //std::cout<< value << std::endl;
-        }
-
-        // Add the row to the result
-        result.push_back(row);
-    }
-
-    // Close the file
-    file.close();
-
-    return result;
-}
-
-int centralityclass(int number = 6){
-    int centrality = 0;
-    std::string stringevt = eventstring(number);
-    double npart = 0.0;
-    std::ifstream inputFile(stringevt); 
-    if (!inputFile.is_open()) {
-        std::cerr << "Error opening file." << std::endl;
-        return 1;
-    }
-
-    std::string line;
-    std::string key;
-
-    while (std::getline(inputFile, line)) {
-        std::istringstream iss(line);
-        // Read the key and value from each line
-        iss >> key;
-
-        // Check if the key is "# mult" and if there is an equal sign
-        if (key == "#") {
-            // Check for "mult" and read the value
-            iss >> key;
-            if (key == "mult") {
-                char equalSign;
-                iss >> equalSign >> npart;
-                break;  // Break the loop after finding the '# mult' value
-            }
-        }
-    }
-
-    inputFile.close();
-
-    if(npart > 117.06642723){ // cent 0 -10%
-        centrality = 0;}
-    else if((npart <= 117.06642723) && (npart > 78.626455621)){ // cent 10 -20%
-        centrality = 1;}
-    else if((npart <= 78.626455621) && (npart > 32.395607629)){ // cent 20 -40%
-        centrality = 2;}
-    else if((npart <= 32.395607629) && (npart > 10.472978130)){ // cent 40 -60%
-        centrality = 3;}
-    else if((npart <= 10.472978130) && (npart > 2.0778445428)){ // cent 60 -80%
-        centrality = 4;}
-    else{
-        centrality = -1;
-    }
-
-    return centrality;
-}
-
-int pTsort(double p = 0){
-    int n = 0;
-
-    if(p < 100){
-        n = -1;
-    }
-    else if((p >= 100) && (p < 112.202)){
-        n = 0;
-    }
-    else if((p >= 112.202) && (p < 125.893)){
-        n = 1;
-    }
-    else if((p >= 125.893) && (p < 141.254)){
-        n = 2;
-    }
-    else if((p >= 141.254) && (p < 158.489)){
-        n = 3;
-    }
-    else if((p >= 158.489) && (p < 177.828)){
-        n = 4;
-    }
-    else if((p >= 177.828) && (p < 199.526)){
-        n = 5;
-    }
-    else if((p >= 199.526) && (p < 223.872)){
-        n = 6;
-    }
-    else if((p >= 223.872) && (p < 251.189)){
-        n = 7;
-    }
-    else if((p >= 251.189) && (p < 281.838)){
-        n = 8;
-    }
-    else if((p >= 281.838) && (p < 316.118)){
-        n = 9;
-    }
-    else if((p >= 316.118) && (p < 398)){
-        n = 10;
-    }
-    else if((p >= 398) && (p < 562)){
-        n = 11;
-    }
-    else if(p >= 562){
-        n = 12;
-    }
-    else{
-        n = -1;
-    }
-    return n;
-}
-
-int xjsort(double xj = 0){
-    int n = 0;
-    if(xj < 0.316228){
-        n = -1;
-    }
-    else if((xj >= 0.316228)&&(xj < 0.354813)){
-        n = 0;
-    }
-    else if((xj >= 0.354813)&&(xj < 0.398107)){
-        n = 1;
-    }
-    else if((xj >= 0.398107)&&(xj < 0.446684)){
-        n = 2;
-    }
-    else if((xj >= 0.446684)&&(xj < 0.501187)){
-        n = 3;
-    }
-    else if((xj >= 0.501187)&&(xj < 0.562341)){
-        n = 4;
-    }
-    else if((xj >= 0.562341)&&(xj < 0.630957)){
-        n = 5;
-    }
-    else if((xj >= 0.630957)&&(xj < 0.707946)){
-        n = 6;
-    }
-    else if((xj >= 0.707946)&&(xj < 0.794328)){
-        n = 7;
-    }
-     else if((xj >= 0.794328)&&(xj < 0.891251)){
-        n = 8;
-    }
-    else if((xj >= 0.891251)&&(xj <= 1)){
-        n = 9;
-    }
-    else{
-        n = -1;
-    }
-    return n;
-}
-
-double xj_binwidth(int i = 0){
-    double n = 0;
-    if(i == 0){
-        n = 0.0192928;
-    }
-    else if(i == 1){
-        n = 0.0216469;
-    }
-    else if(i == 2){
-        n = 0.0242882;
-    }
-    else if(i == 3){
-        n = 0.0272518;
-    }
-    else if(i == 4){
-        n = 0.030577;
-    }
-    else if(i == 5){
-        n = 0.034308;
-    }
-    else if(i == 6){
-        n = 0.0384942;
-    }
-    else if(i == 7){
-        n = 0.0431912;
-    }
-    else if(i == 8){
-        n = 0.0484614;
-    }
-    else if(i == 9){
-        n = 0.0543745;
-    }
-    else{
-        n = 0;
-    }
-    return 2*n;
-    
-}
-
-std::vector<std::vector<double>> eprofile(std::string filename = "energies.dat"){
-    int totjets = 6243475;
-    std::ifstream outputFile1(filename); 
-
-    int numRows = 100;
-    int numCols = 120;
-    
-    // Initialize a 2D vector with zeros
-    std::vector<std::vector<double>> data(numRows, std::vector<double>(numCols));
-
-
-    if (!outputFile1.is_open()) {
-        std::cerr << "Error: Unable to open input file." << std::endl;
-    }
-
-    // Read values from the text file into the 2D vector
-    for (int i = 0; i < numRows; ++i) {
-        for (int j = 0; j < numCols; ++j) {
-            if (!(outputFile1 >> data[i][j])) {
-                // Handle error if the file does not contain enough values
-                std::cerr << "Error: Insufficient data in the file." << std::endl;  
-            }
-        }
-    }
-
-    // Close the file
-    outputFile1.close();
-
-    //std::cout << data.size() << " " << data[0].size() << std::endl;
-
-    return data;
-}
-
-std::vector<double> randoms(int length = 2){
-
-    std::random_device rd;
-    std::mt19937 gen(rd());
-    std::vector<double> m(length,0);
-    double lower_bound = 0.0;
-    double upper_bound = 1.0;
-    std::uniform_real_distribution<double> distribution(lower_bound, upper_bound);
-    // Generate two random double-precision floating-point numbers
-    for(int i = 0; i< length; i++){
-        double ran = distribution(gen);
-        m[i] = ran;
-    }
-
-    return m;
-}
-
-std::tuple<int,int> energypick(std::vector<std::vector<double>> data){
-   
-        //std::cout << "energypick" << std::endl;
-
-        std::vector<double>q = randoms(2);
-        double x_prob = q[0];
-        double y_prob = q[1];
-
-        //std::cout << x_prob << " " << y_prob << std::endl;
-    
-        int xcount = 0;
-        int ycount = 0;
- 
-        double cprobs1 = 0;
-        double cprobs2 = 0;
-        double cprobs3 = 0;
-
-        double p2idx =0;
-        double p3idx = 0;
-
-        for(int i = 0; i<100; i++){
-            for(int j = 0; j<120; j++){
-                cprobs1 += data[i][j];
-            }
-        }
-        while((cprobs2 < x_prob) && (xcount < 99)){
-            for(int k = 0; k<120; k++){
-                p2idx += data[xcount][k];
-            } 
-            cprobs2 += p2idx/cprobs1;
-            p2idx = 0;
-            //std::cout<< "cprobs2: " << cprobs2 << " y bin: " << xcount << std::endl;
-            xcount += 1;
-        }
-        xcount -=1;
-        if(xcount < 0){
-            xcount =0;
-        }
-        if(xcount > 99){
-            xcount =99;
-        }
-
-        for(int l = 0; l<120; l++){
-            p3idx += data[xcount][l];
-        }
-        while((cprobs3 < y_prob)&&(ycount < 119)){
-            //std::cout<< "p3idx: " << p3idx << std::endl;
-            cprobs3 += data[xcount][ycount]/p3idx;
-            //std::cout<< "cprobs3: " << cprobs3 << " x bin: " << ycount << std::endl;
-            ycount +=1;    
-        }
-        ycount-=1;
-        if(ycount > 119){
-            ycount =118;
-        }
-        if(ycount < 0){
-            ycount =0;
-        }
-    //std::cout << xcount << " " << ycount << std::endl;
-    //std::tuple<int,int> Es = std::make_tuple(static_cast<int>(subleadingJetPt),static_cast<int>(leadingJetPt));   
-    std::tuple<int,int> Es = std::make_tuple(100+xcount*4,20+ycount*4); 
-    return Es;
-}
-
-std::tuple<int,int> positionpick(std::vector<std::vector<double> > prof){
-        //std::cout << "positionpick" << std::endl;
-
-        std::vector<double>q = randoms(2);
-        //double x_prob = q[0];
-        double x_prob = q[0];
-        double y_prob = q[1];
-
-        //std::cout << "xprob: " << x_prob << " yprob: " << y_prob << std::endl;
-    
-        int xcount = 0;
-        int ycount = 0;
- 
-        double cprobs1 = 0;
-        double cprobs2 = 0;
-        double cprobs3 = 0;
-
-        double p2idx;
-        double p3idx;
-
-        for(int i = 0; i<100; i++){
-            for(int j = 0; j<100; j++){
-                cprobs1 += prof[i][j];
-            }
-        }
-
-        //std::cout<< "cprobs1: " << cprobs1 << std::endl;
-
-        while(cprobs2 < x_prob && (x_prob<99)){
-            for(int k = 0; k<100; k++){
-                p2idx += prof[xcount][k];
-            } 
-            cprobs2 += p2idx/cprobs1;
-            p2idx = 0;
-            //std::cout<< "cprobs2: " << cprobs2 << " y bin: " << xcount << std::endl;
-            xcount += 1;
-        }
-        xcount -=1;
-        if(xcount <=0){
-            std::cout << " caught 0 index" << std::endl;
-        }
-        if(xcount >99){
-            std::cout << " caught 100 index" << std::endl;
-        }
-
-        for(int l = 0; l<100; l++){
-            p3idx += prof[xcount][l];
-        }
-        while((cprobs3 < y_prob)&&(ycount<99)){
-            //std::cout<< "p3idx: " << p3idx << std::endl;
-            cprobs3 += prof[xcount][ycount]/p3idx;
-            //std::cout<< "cprobs3: " << cprobs3 << " x bin: " << ycount << std::endl;
-            ycount +=1;    
-        }
-        ycount-=1;
-        if(ycount <=0){
-            std::cout << " caught 0 index" << std::endl;
-        }
-        if(ycount >99){
-            std::cout << " caught 100 index" << std::endl;
-        }
-        //std::cout << xcount << " " << ycount << std::endl;
-        std::tuple<int, int> a = std::make_tuple(xcount, ycount);
-        //std::cout<< "finish with x: " << ycount << " y: " << xcount << std::endl;
-        return a;
-}
-
-double weighfour(double x, double y, std::vector<std::vector<double> > profile){
-   
-    double w = 0;
-    int x_f,x_c,y_f,y_c = 0;
-
-    double ll,lh,hl,hh = 0;
-
-    x_f = std::floor(x);
-    x_c = x_f + 1;
-    y_f = std::floor(y);
-    y_c = y_f+1;
-
-    ll = profile[x_f][y_f];
-    lh = profile[x_f][y_c];
-    hl = profile[x_c][y_f];
-    hh = profile[x_c][y_c];
-
-    return (ll+lh+hl+hh)/4;
-}
-
-std::vector<double> pathlength(double theta, std::vector<std::vector<double>> profile, double dt){
-
-    std::tuple<int,int> pos = positionpick(profile);
-    double x = 1.0*std::get<0>(pos);
-    double y = 1.0*std::get<1>(pos);
-    double e_x = 0;
-    double d = 0;
-    double path = 0;
-    double e_path = 0;
-    int i = 0;
-
-     while(i < 100/dt){
-
-        if(i > 1){
-            if(e_x<=0.00015){
-                break;
-            }
-        }
-        if(x < 4||x> 96||y<4||y>96){
-                break;
-            }
-
-        //std::cout << "x: " << x << " y: " << y << " d: " << d << " e_x: " << e_x << " E: " << E << std::endl;
-        x += dt*cos(theta);
-        y += dt*sin(theta);
-        //d = sqrt((x-1.0*std::get<0>(pos))*(x-1.0*std::get<0>(pos))+(y-1.0*std::get<1>(pos))*(y-1.0*std::get<1>(pos)));
-        e_x = weighfour(x,y,profile);
-        e_path+=dt*e_x;
-        path+=dt;
-        
-
-       i+=1; 
-    }
-
-    std::vector<double> paths(2,0);
-    paths[0] = path;
-    paths[1] = e_path; 
-
-    return paths;
-}
-
-double energyloss(std::vector<double> c, std::vector<double> c_lim, double Ei, double theta, std::vector<std::vector<double> > profile, double dt){
-
-    //std::cout << "eloss" << std::endl;
-
-    std::tuple<int,int> pos = positionpick(profile);
-    //pos = std::make_tuple(50,50);
-    double x = 1.0*std::get<0>(pos);
-    double y = 1.0*std::get<1>(pos);
-    double E = Ei;
-    double e_x = 0;
-    double d = 0;
-    double d2 = 0;
-    int i = 0;
-
-    //std::cout << " eloss loop " << std::endl;
-
-    while(i < 100/dt){
-
-        //std::cout << "x: " << x << " y: " << y << " d: " << d << " e_x: " << e_x << " E: " << E << std::endl;
-
-        if(i > 1){
-            if((E < 28)||(e_x<=0.00015)){
-                break;
-            }
-        }
-        if(x < 4||x> 96||y<4||y>96){
-                break;
-            }
-
-        x += dt*cos(theta);
-        y += dt*sin(theta);
-
-        //d = sqrt((x-1.0*std::get<0>(pos))*(x-1.0*std::get<0>(pos))+(y-1.0*std::get<1>(pos))*(y-1.0*std::get<1>(pos)));
-        d += dt;
-        e_x = weighfour(x,y,profile);
-
-        
-        
-        E = E - c_lim[0]*c[0]*dt; //0.75
-        E = E - c_lim[1]*c[1]*d*dt; //0.04
-        E = E - c_lim[2]*c[2]*(d*d)*dt; //0.0012
-        E = E - c_lim[3]*c[3]*E*dt; //0.005
-        E = E - c_lim[4]*c[4]*E*d*dt; //0.0003
-        E = E - c_lim[5]*c[5]*E*(d*d)*dt;//0.00001
-        E = E - c_lim[6]*c[6]*(E*E)*dt; //0.00005
-        E = E - c_lim[7]*c[7]*(E*E)*d*dt;//0.000003
-        E = E - c_lim[8]*c[8]*(E*E)*(d*d)*dt; //0.0000001
-        E = E - c_lim[9]*c[9]*e_x*dt; //0.8
-        E = E - c_lim[10]*c[10]*d*e_x*dt; //0.05
-        E = E - c_lim[11]*c[11]*(d*d)*e_x*dt; //0.002
-        E = E - c_lim[12]*c[12]*E*e_x*dt; //0.0065
-        E = E - c_lim[13]*c[13]*E*d*e_x*dt; //0.0005
-        E = E - c_lim[14]*c[14]*E*(d*d)*e_x*dt; //0.00002
-        E = E - c_lim[15]*c[15]*(E*E)*e_x*dt; //0.00006
-        E = E - c_lim[16]*c[16]*(E*E)*d*e_x*dt; //0.000005
-        E = E - c_lim[17]*c[17]*(E*E)*(d*d)*e_x*dt; //0.000004
-        E = E - c_lim[18]*c[18]*(e_x*e_x)*dt; // 0.5
-        E = E - c_lim[19]*c[19]*d*(e_x*e_x)*dt; //0.03
-        E = E - c_lim[20]*c[20]*(d*d)*(e_x*e_x)*dt;  //0.001
-        E = E - c_lim[21]*c[21]*E*(e_x*e_x)*dt; //0.0035
-        E = E - c_lim[22]*c[22]*E*d*(e_x*e_x)*dt; //0.00025
-        E = E - c_lim[23]*c[23]*E*(d*d)*(e_x*e_x)*dt; //0.000015
-        E = E - c_lim[24]*c[24]*(E*E)*(e_x*e_x)*dt; //0.00004;
-        E = E - c_lim[25]*c[25]*(E*E)*d*(e_x*e_x)*dt; //0.000004
-        E = E - c_lim[26]*c[26]*(E*E)*(d*d)*(e_x*e_x)*dt; //0.0000002
-
-        //std::cout << E << std::endl;
-        
-       i+=1; 
-    } 
-    return E;
-}
-
-// checked below 
-
-std::vector<double> xj_sample(std::vector<double> c, std::vector<double> c_lim, double dt, int iters, int jetsamples, std::vector<std::vector<double>> data){
-
-    std::cout << "xjsample" << std::endl;
-
-    std::vector<double> xjs(2*iters*jetsamples,0);
-
-    double E1,E2;
-    double theta1,theta2;
-    double pt1,pt2,ptL;
-    double xj;
-    int index = 0;
-    for(int i = 0; i<iters; i++){
-
-        std::vector<std::vector<double>>prof = profile(eventstring(i));
-
-        for(int j = 0; j<jetsamples; j++){
-            index = i*jetsamples+j;
-            //std::cout << index << std::endl;
-            //std::cout << "energypick " << std::endl;
-            std::tuple<int,int> energypicks = energypick(data);
-            E1 = 1.0*std::get<0>(energypicks);
-            E2 = 1.0*std::get<1>(energypicks);
-            //E1 = 150;
-            //E2 = 100;
-
-            //std::cout << E1 << " " << E2 << std::endl;
-
-            std::vector<double>q = randoms(1);
-            theta1 = q[0]*2*(3.1415926)-3.1415926;
-            theta2 = theta1 + 3.1415926;
-
-            //std::cout << theta1 << " " << theta2 << std::endl;
-            pt1 = energyloss(c,c_lim,E1,theta1,prof,dt);
-            pt2 = energyloss(c,c_lim,E2,theta2,prof,dt);
-
-           
-            //std::cout << pt1 << " " << pt2 << std::endl;
-
-            if(pt1 < pt2){
-                xj = pt1/pt2;
-                ptL = pt2;
-            }
-            else{
-                xj = pt2/pt1;
-                ptL = pt1;
-            }
-            xjs[2*index] = ptL;
-            xjs[2*index+1] =xj;
-
-            if((i*jetsamples+j)%500 == 0){
-                std::cout << std::setw(5) <<1.0*(i*jetsamples+j)/(iters*jetsamples) << " " << std::setw(5) << xjs[2*index] << " " << xjs[2*index+1] << std::endl;
-            }
-        }
-
-    }
-
-    return xjs;
-
-}
-    
-
-std::vector<std::vector<std::vector<std::vector<double>>>> importdata(){
-    
-    std::vector<double> v0_0 {0.202896,0.491415,0.964168,1.52679,1.95927,2.16864,2.09207,1.6454,1.3395,1.27998};
-    std::vector<double> e0_0 {0.0150465,0.0209102,0.027141,0.0369537,0.0414183,0.035832,0.026453,0.0202473,0.0165904,0.0184591};
-    std::vector<double> v0_1 {0.288457,0.638343,1.19089,1.72078,2.02357,1.99797,1.67852,1.40618,1.39318,1.4991};
-    std::vector<double> e0_1 {0.0217372,0.0293327,0.0375206,0.0408614,0.0389615,0.0337299,0.0263991,0.0199747,0.0153893,0.0213203};
-    std::vector<double> v0_2 {0.363554,0.809436,1.26216,1.68225,1.93418,1.77132,1.5177,1.42747,1.50858,1.57919};
-    std::vector<double> e0_2 {0.0314364,0.0404126,0.0461875,0.0476703,0.0454411,0.0372901,0.0273334,0.0210157,0.0179251,0.0261471};
-    std::vector<double> v0_3 {0.374267,0.814931,1.2881,1.58125,1.73665,1.75418,1.64119,1.51839,1.49269,1.58864};
-    std::vector<double> e0_3 {0.0462395,0.0582464,0.0607348,0.0577341,0.0502784,0.0416446,0.0324567,0.0251254,0.0213755,0.0324055};
-    std::vector<double> v0_4 {0.612763,0.942419,1.29369,1.57753,1.72602,1.70382,1.53733,1.44576,1.53775,1.58143};
-    std::vector<double> e0_4 {0.0207453,0.0279459,0.0315194,0.0302425,0.0257853,0.022378,0.0187756,0.0155876,0.0150548,0.020484};
-    std::vector<double> v0_5 {0.647232,0.930954,1.19171,1.42783,1.60238,1.68394,1.61189,1.48043,1.54971,1.68544};
-    std::vector<double> e0_5 {0.0169399,0.0189752,0.0192319,0.0194178,0.0190851,0.0174799,0.0152281,0.0128736,0.0119814,0.0208606};
-    std::vector<double> v0_6 {0.571353,0.804551,0.978189,1.25479,1.55508,1.65488,1.62617,1.57132,1.67526,1.79553};
-    std::vector<double> e0_6 {0.0150599,0.0155861,0.0160034,0.0164799,0.0163621,0.0156374,0.0146912,0.0129805,0.0127707,0.0267732};
-    std::vector<double> v0_7 {0.483943,0.618464,0.821297,1.10505,1.39175,1.60583,1.70145,1.68038,1.7664,1.9474};
-    std::vector<double> e0_7 {0.0194427,0.018197,0.0176442,0.0179943,0.0187139,0.0191843,0.0185057,0.016371,0.0167538,0.0393187};
-    std::vector<double> v0_8 {0.463113,0.580134,0.725195,0.994005,1.32984,1.58329,1.68444,1.73746,1.85988,2.00106};
-    std::vector<double> e0_8 {0.0384499,0.0341616,0.0258644,0.0225611,0.0243848,0.0255084,0.0246751,0.0238932,0.0240178,0.0530874};
-    std::vector<double> v0_9 {0.380296,0.446168,0.57928,0.860193,1.23215,1.56761,1.70922,1.77811,1.95023,2.15049};
-    std::vector<double> e0_9 {0.0428739,0.0348545,0.0283414,0.0378029,0.0396903,0.036998,0.0370708,0.0340171,0.0331822,0.0750701};
-    std::vector<double> v0_10 {0.281287,0.357803,0.559525,0.823948,1.13301,1.30053,1.59325,1.92287,2.07135,2.33121};
-    std::vector<double> e0_10 {0.043575,0.0322012,0.0362287,0.0379167,0.0382003,0.0377286,0.0418406,0.0430147,0.04037,0.100683};
-    std::vector<double> v0_11 {0.318847,0.357683,0.395249,0.612879,0.886356,1.1853,1.51042,1.83662,2.2404,2.68498};
-    std::vector<double> e0_11 {0.0460141,0.0456513,0.0541509,0.0598057,0.0600633,0.0657333,0.0726751,0.0768295,0.0786687,0.200586};
-    std::vector<double> v0_12 {0.236369,0.548894,1.05286,1.60268,1.98442,2.10187,1.93028,1.55182,1.3605,1.3657};
-    std::vector<double> e0_12 {0.0125389,0.0171837,0.0221546,0.0275422,0.0293198,0.025371,0.0190585,0.0145358,0.0116988,0.0139813};
-
-
-    std::vector<double> v1_0 {0.500547,0.88774,1.27832,1.5926,1.78831,1.83895,1.80351,1.55117,1.3863,1.38486};
-    std::vector<double> e1_0 {0.0178365,0.0199565,0.0222144,0.0233258,0.0221712,0.0195996,0.017044,0.0143865,0.0118863,0.0170928};
-    std::vector<double> v1_1 {0.554023,0.90562,1.29668,1.58823,1.73106,1.75194,1.60523,1.44228,1.49273,1.57187};
-    std::vector<double> e1_1 {0.0219075,0.025328,0.0286004,0.0290026,0.0265545,0.0240461,0.0200752,0.0160179,0.0142611,0.0215344};
-    std::vector<double> v1_2 {0.540693,0.882579,1.27252,1.52882,1.6772,1.66423,1.50383,1.47459,1.59949,1.66293};
-    std::vector<double> e1_2 {0.0311546,0.0373896,0.03992,0.0368965,0.0327116,0.0287897,0.023688,0.0199427,0.0181953,0.0279242};
-    std::vector<double> v1_3 {0.538699,0.812575,1.11494,1.36456,1.4867,1.59118,1.64517,1.65041,1.68512,1.6814};
-    std::vector<double> e1_3 {0.0443138,0.0457312,0.0463035,0.0447846,0.0397528,0.0344704,0.0303675,0.0266941,0.0241515,0.0350904};
-    std::vector<double> v1_4 {0.628977,0.866081,1.07699,1.30858,1.57907,1.68707,1.58408,1.52373,1.64676,1.73869};
-    std::vector<double> e1_4 {0.0204163,0.0231704,0.021471,0.0209701,0.0227125,0.0212828,0.0176418,0.0149762,0.0147459,0.0212352};
-    std::vector<double> v1_5 {0.625069,0.834434,1.07234,1.28339,1.44579,1.55682,1.59878,1.60002,1.69159,1.81355};
-    std::vector<double> e1_5 {0.013537,0.0148776,0.0157258,0.0159277,0.015811,0.0154126,0.014591,0.0128895,0.012101,0.0226265};
-    std::vector<double> v1_6 {0.424673,0.618755,0.825545,1.09612,1.3828,1.61546,1.74199,1.70079,1.76944,1.92223};
-    std::vector<double> e1_6 {0.0114303,0.0123395,0.0131119,0.0144614,0.0158331,0.0158681,0.015177,0.0137434,0.0135445,0.0293819};
-    std::vector<double> v1_7 {0.378672,0.530933,0.708322,0.953968,1.2695,1.52525,1.66304,1.76532,1.92783,2.08122};
-    std::vector<double> e1_7 {0.015656,0.0153962,0.0147467,0.0173833,0.0189999,0.0192783,0.0198232,0.019169,0.0195533,0.0417194};
-    std::vector<double> v1_8 {0.388703,0.471844,0.657287,0.869214,1.17058,1.46608,1.64942,1.76742,1.96651,2.23292};
-    std::vector<double> e1_8 {0.0241212,0.0191043,0.019814,0.0209164,0.0379587,0.0368999,0.0265565,0.0257134,0.0265684,0.0610963};
-    std::vector<double> v1_9 {0.326654,0.431205,0.562765,0.844829,1.1288,1.43347,1.70968,1.89083,2.04093,2.1626};
-    std::vector<double> e1_9 {0.0322308,0.0304376,0.0264956,0.0292722,0.0457533,0.0454666,0.0380717,0.03722,0.0368771,0.0810333};
-    std::vector<double> v1_10 {0.286161,0.377736,0.468505,0.702633,1.08033,1.35152,1.56299,1.80754,2.06373,2.54028};
-    std::vector<double> e1_10 {0.0329986,0.0308405,0.0300625,0.0353649,0.0391677,0.0401764,0.040635,0.040669,0.041927,0.110372};
-    std::vector<double> v1_11 {0.124655,0.306763,0.523902,0.646756,0.858833,1.2252,1.50275,1.75209,2.27015,2.73608};
-    std::vector<double> e1_11 {0.0234228,0.0400983,0.0498211,0.0507188,0.0578339,0.0689451,0.0728957,0.0742275,0.0809739,0.199047};
-    std::vector<double> v1_12 {0.521389,0.894709,1.28548,1.5909,1.766,1.80504,1.72623,1.50873,1.42778,1.45775};
-    std::vector<double> e1_12 {0.0138326,0.0156845,0.0175644,0.0181803,0.0170275,0.0151949,0.0130072,0.0107564,0.00913602,0.0133974};
-
-    std::vector<double> v2_0 {0.68138,0.951544,1.19891,1.45831,1.63425,1.72342,1.70874,1.56043,1.5165,1.5013};
-    std::vector<double> e2_0 {0.0200282,0.021724,0.0224323,0.0220905,0.0205727,0.0184659,0.0163692,0.0143049,0.012721,0.01834};
-    std::vector<double> v2_1 {0.582333,0.883393,1.198,1.4352,1.57114,1.65775,1.60277,1.53698,1.61617,1.6573};
-    std::vector<double> e2_1 {0.0246154,0.0277095,0.0284349,0.027443,0.0257814,0.0228369,0.0195731,0.0172597,0.0159365,0.0226442};
-    std::vector<double> v2_2 {0.525005,0.764087,0.957376,1.24763,1.55164,1.62131,1.62275,1.62755,1.71178,1.78929};
-    std::vector<double> e2_2 {0.0321979,0.0343354,0.034189,0.0330095,0.0315851,0.0278849,0.0245056,0.0220666,0.0201458,0.0310284};
-    std::vector<double> v2_3 {0.47863,0.669507,0.93315,1.15613,1.3472,1.58964,1.69998,1.66277,1.76343,1.90634};
-    std::vector<double> e2_3 {0.0433785,0.0431477,0.0419382,0.0382031,0.034814,0.0333073,0.0315657,0.028187,0.0266419,0.0399687};
-    std::vector<double> v2_4 {0.494177,0.637555,0.807409,1.09112,1.40777,1.56126,1.63271,1.70246,1.85194,1.92336};
-    std::vector<double> e2_4 {0.0173006,0.0193699,0.0189786,0.019694,0.0225467,0.0218351,0.0201286,0.0192046,0.0181695,0.0239288};
-    std::vector<double> v2_5 {0.403422,0.594859,0.809815,1.02918,1.33825,1.55168,1.65513,1.71535,1.85413,2.01959};
-    std::vector<double> e2_5 {0.0115086,0.0129787,0.0136943,0.0149726,0.015721,0.015689,0.0153226,0.0140005,0.0130504,0.0235576};
-    std::vector<double> v2_6 {0.320322,0.496579,0.712039,0.977344,1.24005,1.46856,1.61653,1.73917,1.96504,2.17508};
-    std::vector<double> e2_6 {0.00960272,0.0105664,0.0117394,0.0133493,0.0144699,0.0149248,0.0146254,0.0137843,0.0144504,0.0320187};
-    std::vector<double> v2_7 {0.287918,0.428092,0.619139,0.859103,1.1344,1.38283,1.59434,1.78158,2.04313,2.34054};
-    std::vector<double> e2_7 {0.0117685,0.0127742,0.0139249,0.0152496,0.0170306,0.0184404,0.0191348,0.0186345,0.0196503,0.0467863};
-    std::vector<double> v2_8 {0.247232,0.382196,0.568533,0.853054,1.10975,1.28895,1.52888,1.80821,2.13099,2.41886};
-    std::vector<double> e2_8 {0.0163423,0.0162155,0.0182477,0.0239973,0.0262711,0.0247057,0.0250736,0.0255987,0.0274292,0.0661711};
-    std::vector<double> v2_9 {0.176278,0.353844,0.513241,0.70889,0.974131,1.30984,1.67656,1.87869,2.0983,2.48396};
-    std::vector<double> e2_9 {0.0181229,0.0243823,0.0279322,0.0290308,0.0312083,0.035097,0.038483,0.0372141,0.0383107,0.0939269};
-    std::vector<double> v2_10 {0.138532,0.292248,0.427271,0.666596,0.953983,1.21533,1.472,1.75044,2.19553,2.81247};
-    std::vector<double> e2_10 {0.0197151,0.0245855,0.0255323,0.0313267,0.0358147,0.0372359,0.0395449,0.0417409,0.0452324,0.116361};
-    std::vector<double> v2_11 {0.127925,0.261438,0.430816,0.527914,0.712208,1.0166,1.23091,1.57366,2.39217,3.29361};
-    std::vector<double> e2_11 {0.0238953,0.0364144,0.0462935,0.0471428,0.0521608,0.0623327,0.0649964,0.0689416,0.0827422,0.227109};
-    std::vector<double> v2_12 {0.64311,0.925212,1.19856,1.44938,1.60987,1.69805,1.66779,1.55137,1.55501,1.56158};
-    std::vector<double> e2_12 {0.0155387,0.0171004,0.017614,0.0172094,0.0160815,0.0143609,0.0125702,0.0110217,0.00994318,0.0142562};
-
-    std::vector<double> v3_0 {0.541348,0.722411,1.00474,1.2367,1.44223,1.61593,1.72021,1.71656,1.7173,1.7047};
-    std::vector<double> e3_0 {0.0320022,0.0467695,0.0583927,0.0500253,0.0318492,0.0246202,0.0223437,0.0200639,0.0184459,0.0289165};
-    std::vector<double> v3_1 {0.485636,0.666611,0.848339,1.15808,1.3812,1.51832,1.67054,1.69439,1.8054,1.92611};
-    std::vector<double> e3_1 {0.0351762,0.0341761,0.0541087,0.0511091,0.0319936,0.0283302,0.0266295,0.0246858,0.0229433,0.0371979};
-    std::vector<double> v3_2 {0.477106,0.614899,0.793913,1.01666,1.26653,1.48745,1.59597,1.72287,1.93365,2.04475};
-    std::vector<double> e3_2 {0.0562134,0.0541611,0.042451,0.0392802,0.0368261,0.0349738,0.0333288,0.031552,0.0310387,0.0470313};
-    std::vector<double> v3_3 {0.328327,0.491801,0.726038,0.995004,1.28524,1.50257,1.64186,1.73596,1.91938,2.13749};
-    std::vector<double> e3_3 {0.0474584,0.0431952,0.0440607,0.0448874,0.042324,0.0426011,0.0421328,0.0402706,0.0387267,0.0623376};
-    std::vector<double> v3_4 {0.288712,0.409399,0.623122,0.903074,1.14757,1.39941,1.65075,1.79715,2.01281,2.28072};
-    std::vector<double> e3_4 {0.0200252,0.0188852,0.0213474,0.0244924,0.0273661,0.0291855,0.0303628,0.0294951,0.0288718,0.0442005};
-    std::vector<double> v3_5 {0.245292,0.447268,0.637287,0.877569,1.17489,1.36463,1.57437,1.82298,2.08367,2.26448};
-    std::vector<double> e3_5 {0.0130399,0.0162105,0.017823,0.0195436,0.0217372,0.0230968,0.0236104,0.0227421,0.0220289,0.0423553};
-    std::vector<double> v3_6 {0.235337,0.372351,0.557414,0.795617,1.06428,1.37673,1.63892,1.81882,2.11695,2.35712};
-    std::vector<double> e3_6 {0.0135782,0.0149145,0.0169798,0.0197383,0.0220696,0.0245293,0.02597,0.0251183,0.0263931,0.0593566};
-    std::vector<double> v3_7 {0.196084,0.301717,0.406394,0.635017,0.97701,1.33,1.59618,1.76004,2.14966,2.67347};
-    std::vector<double> e3_7 {0.0142996,0.0185355,0.0193005,0.0237702,0.0279755,0.03078,0.0326445,0.0319041,0.0350296,0.090786};
-    std::vector<double> v3_8 {0.261063,0.331786,0.458824,0.726196,1.02145,1.26075,1.43496,1.67278,2.18207,2.7426};
-    std::vector<double> e3_8 {0.0323649,0.0282452,0.0278617,0.033768,0.0383087,0.0407348,0.0420299,0.0425967,0.0482065,0.12339};
-    std::vector<double> v3_9 {0.165751,0.294718,0.499611,0.773246,1.10054,1.28931,1.3879,1.635,2.11914,2.80629};
-    std::vector<double> e3_9 {0.0315787,0.0361662,0.0425303,0.0502078,0.0569502,0.0587869,0.0600278,0.0595221,0.0651334,0.184771};
-    std::vector<double> v3_10 {0.145653,0.256496,0.488619,0.775521,0.882192,1.06662,1.60128,1.87446,2.1235,2.75053};
-    std::vector<double> e3_10 {0.0363816,0.04072,0.054353,0.062516,0.0593574,0.0636539,0.0805149,0.0793623,0.0769933,0.212783};
-    std::vector<double> v3_11 {0.285288,0.203409,0.271553,0.377363,0.59307,1.04715,1.56842,1.64136,2.45305,3.10822};
-    std::vector<double> e3_11 {0.0948072,0.0465161,0.0639413,0.0767736,0.0887296,0.113646,0.142898,0.132163,0.16593,0.366237};
-    std::vector<double> v3_12 {0.520432,0.701462,0.946023,1.20718,1.41932,1.57929,1.70156,1.70824,1.75038,1.78783};
-    std::vector<double> e3_12 {0.0239459,0.0318568,0.0417058,0.0366403,0.0232206,0.0186919,0.0171644,0.0155854,0.0143851,0.0228357};
-
-    std::vector<double> v4_0 {0.353311,0.548699,0.768702,1.04085,1.34344,1.55054,1.68821,1.79365,1.88437,1.9535};
-    std::vector<double> e4_0 {0.0220946,0.0270016,0.0302115,0.0319526,0.0326129,0.031336,0.0302028,0.0289184,0.0285858,0.0516299};
-    std::vector<double> v4_1 {0.331151,0.482714,0.636239,0.865305,1.10752,1.38628,1.68349,1.86122,2.10867,2.12086};
-    std::vector<double> e4_1 {0.0271628,0.0284227,0.0299512,0.0323824,0.0335934,0.034152,0.0349188,0.0338488,0.0336843,0.0533291};
-    std::vector<double> v4_2 {0.25585,0.395154,0.584381,0.859556,1.19435,1.46609,1.64454,1.82588,2.09826,2.17421};
-    std::vector<double> e4_2 {0.0375529,0.0367887,0.0344525,0.0360998,0.0388421,0.0398243,0.0407203,0.0404433,0.0414895,0.0666865};
-    std::vector<double> v4_3 {0.217328,0.425446,0.56667,0.740478,1.06359,1.26954,1.47779,1.83538,2.22311,2.44019};
-    std::vector<double> e4_3 {0.030112,0.0488101,0.0506953,0.0446822,0.0500512,0.0498699,0.0488294,0.0505734,0.0521532,0.0897984};
-    std::vector<double> v4_4 {0.250816,0.390401,0.677047,0.926116,1.21825,1.31767,1.41783,1.78481,2.18332,2.30066};
-    std::vector<double> e4_4 {0.0285935,0.0323749,0.038519,0.0464471,0.0496852,0.0434261,0.0392537,0.0422688,0.0454265,0.0752116};
-    std::vector<double> v4_5 {0.204516,0.31189,0.530464,0.858061,1.101,1.28297,1.52707,1.86452,2.21195,2.36959};
-    std::vector<double> e4_5 {0.0176719,0.0214387,0.0288691,0.0363093,0.0374915,0.0373356,0.0395739,0.0421321,0.0448956,0.0953572};
-    std::vector<double> v4_6 {0.0808131,0.227856,0.472354,0.737581,1.05864,1.33701,1.62417,1.88215,2.15359,2.49226};
-    std::vector<double> e4_6 {0.0114288,0.0226938,0.0318757,0.0377303,0.0454376,0.0490867,0.0516869,0.0522331,0.0557671,0.132206};
-    std::vector<double> v4_7 {0.109514,0.204457,0.414716,0.625516,0.823655,1.098,1.41113,1.82538,2.37325,2.8564};
-    std::vector<double> e4_7 {0.0231076,0.0286649,0.0405726,0.0469212,0.0501189,0.0569819,0.0627368,0.0697481,0.0798723,0.19783};
-    std::vector<double> v4_8 {0.100487,0.18077,0.299254,0.621326,1.00272,1.2555,1.48674,1.59398,2.19093,3.01541};
-    std::vector<double> e4_8 {0.247617,0.0424543,0.042723,0.0656937,0.0861569,0.0908972,0.0909822,0.0844727,0.0999611,0.291829};
-    std::vector<double> v4_9 {0.0033601,0.0661138,0.346309,0.793178,1.02608,1.17454,1.4234,1.66423,2.22459,2.98534};
-    std::vector<double> e4_9 {0.0162369,0.0238084,0.072758,0.120661,0.124136,0.116827,0.121202,0.122609,0.139222,0.392717};
-    std::vector<double> v4_10 {0.0491783,0.151893,0.331404,0.518758,0.813926,1.32541,1.72398,1.71201,2.12093,2.94489};
-    std::vector<double> e4_10 {0.0412683,0.059397,0.0846958,0.109119,0.132288,0.16146,0.175021,0.161519,0.175219,0.497208};
-    std::vector<double> v4_11 {0.139563,0.3091,0.245277,0.403058,1.01588,0.946363,0.852907,1.21457,2.18283,4.02893};
-    std::vector<double> e4_11 {0.13652,0.153651,0.0910864,0.128392,0.280729,0.239794,0.171384,0.23897,0.303531,1.12759};
-    std::vector<double> v4_12 {0.345227,0.524627,0.72038,0.976809,1.25738,1.49062,1.68649,1.8183,1.96619,2.01455};
-    std::vector<double> e4_12 {0.01718,0.0200288,0.0220637,0.0234691,0.0240572,0.0234746,0.0230262,0.022132,0.0219249,0.0381327};
-
-
-
-    //systematic errors
-    std::vector<double> s0_0 {0.190743,0.353975,0.445266,0.31938,0.138343,0.238472,0.221989,0.23488,0.222501,0.177754};
-    std::vector<double> s0_1 {0.25931,0.37055,0.405977,0.282968,0.173289,0.275337,0.302561,0.264887,0.145566,0.270936};
-    std::vector<double> s0_2 {0.226584,0.294611,0.260756,0.200537,0.161347,0.260407,0.278091,0.164012,0.126013,0.253053};
-    std::vector<double> s0_3 {0.207287,0.275676,0.232108,0.196144,0.138769,0.101448,0.110499,0.156811,0.1442,0.16631};
-    std::vector<double> s0_4 {0.172991,0.160439,0.160343,0.174974,0.160917,0.101172,0.110373,0.177333,0.163862,0.149508};
-    std::vector<double> s0_5 {0.117275,0.114217,0.132452,0.143831,0.115966,0.113673,0.0885504,0.148614,0.151167,0.145196};
-    std::vector<double> s0_6 {0.115115,0.109421,0.106283,0.0960308,0.149779,0.134454,0.100856,0.109574,0.123698,0.133187};
-    std::vector<double> s0_7 {0.0990175,0.110091,0.102655,0.0937017,0.104874,0.12086,0.129689,0.109478,0.123232,0.137437};
-    std::vector<double> s0_8 {0.0873311,0.105239,0.0989324,0.0894587,0.110472,0.134968,0.125231,0.119643,0.133267,0.153322};
-    std::vector<double> s0_9 {0.0499492,0.0488056,0.064058,0.0931015,0.10579,0.139601,0.155707,0.137407,0.146576,0.159605};
-    std::vector<double> s0_10 {0.0632997,0.0749104,0.0852551,0.0995425,0.109611,0.120786,0.143497,0.191892,0.166937,0.195618};
-    std::vector<double> s0_11 {0.077501,0.0855761,0.0982631,0.105291,0.132592,0.168844,0.174681,0.172106,0.180179,0.169367};
-    std::vector<double> s0_12 {0.215121,0.356235,0.423261,0.294154,0.144001,0.249165,0.237747,0.242095,0.184796,0.204337};
-
-    std::vector<double> s1_0 {0.350105,0.51313,0.495246,0.23098,0.155699,0.307519,0.225849,0.20269,0.162485,0.113533};
-    std::vector<double> s1_1 {0.308152,0.382685,0.306593,0.0962555,0.206956,0.270074,0.245931,0.188136,0.0890708,0.224679};
-    std::vector<double> s1_2 {0.22368,0.239886,0.14894,0.0909349,0.114186,0.149733,0.194882,0.146322,0.0915774,0.21444};
-    std::vector<double> s1_3 {0.217498,0.214348,0.130474,0.0817098,0.0880208,0.125979,0.11347,0.137887,0.0907191,0.111121};
-    std::vector<double> s1_4 {0.180616,0.153016,0.121848,0.130325,0.130746,0.0904222,0.094481,0.170142,0.138516,0.117243};
-    std::vector<double> s1_5 {0.125249,0.122402,0.132105,0.121487,0.0876641,0.068773,0.0742169,0.119808,0.135633,0.112349};
-    std::vector<double> s1_6 {0.0811961,0.0674403,0.059182,0.0676339,0.0822593,0.112057,0.125463,0.0792592,0.114745,0.0916656};
-    std::vector<double> s1_7 {0.0600142,0.0735416,0.0715298,0.0719517,0.0741629,0.0922999,0.0927208,0.0930637,0.0905551,0.102734};
-    std::vector<double> s1_8 {0.0810625,0.0672615,0.0642939,0.0631438,0.0671768,0.101215,0.0973821,0.0838603,0.108581,0.13859};
-    std::vector<double> s1_9 {0.0763119,0.0754387,0.0698323,0.0847958,0.0920008,0.0822175,0.11766,0.122298,0.110037,0.141983};
-    std::vector<double> s1_10 {0.0645797,0.0514492,0.0581067,0.0730773,0.0859131,0.0883366,0.0879232,0.117863,0.10099,0.129931};
-    std::vector<double> s1_11 {0.0597043,0.094934,0.127103,0.133409,0.1467,0.141745,0.139461,0.136362,0.157045,0.168222};
-    std::vector<double> s1_12 {0.332004,0.457665,0.416844,0.168841,0.172241,0.290546,0.230745,0.195039,0.12465,0.147564};
-
-    std::vector<double> s2_0 {0.383789,0.406684,0.305697,0.163473,0.0772202,0.178765,0.208578,0.239227,0.145531,0.127218};
-    std::vector<double> s2_1 {0.226092,0.244465,0.214505,0.129008,0.0576132,0.125868,0.183766,0.200843,0.101395,0.138213};
-    std::vector<double> s2_2 {0.141428,0.144933,0.122451,0.0894787,0.0704404,0.0492523,0.0787131,0.133318,0.103036,0.11505};
-    std::vector<double> s2_3 {0.0702225,0.105166,0.207598,0.144029,0.0589904,0.121172,0.0628948,0.109359,0.11017,0.0915965};
-    std::vector<double> s2_4 {0.116359,0.0847515,0.0548628,0.0708498,0.106893,0.0738512,0.0480783,0.0898397,0.0898762,0.0944938};
-    std::vector<double> s2_5 {0.0712865,0.0604055,0.0571784,0.0510544,0.0652103,0.084711,0.0696282,0.0596697,0.0959399,0.0916868};
-    std::vector<double> s2_6 {0.0481199,0.0544193,0.0548043,0.054633,0.0508826,0.0631344,0.0671599,0.054207,0.0676386,0.0808705};
-    std::vector<double> s2_7 {0.0275316,0.033439,0.0420424,0.050425,0.0566524,0.0538141,0.0793591,0.0709721,0.0754325,0.0859655};
-    std::vector<double> s2_8 {0.0308782,0.0345618,0.0442132,0.053881,0.0597045,0.0609758,0.0726039,0.0824048,0.0848965,0.101528};
-    std::vector<double> s2_9 {0.0365194,0.0469874,0.0499769,0.0668214,0.0659663,0.0596418,0.108034,0.0957318,0.0837474,0.109161};
-    std::vector<double> s2_10 {0.0234706,0.0398866,0.040076,0.048408,0.0732131,0.0659768,0.0673173,0.083305,0.0796399,0.100668};
-    std::vector<double> s2_11 {0.0185119,0.034908,0.0489467,0.0559125,0.0831432,0.0762399,0.0812406,0.0951341,0.140535,0.126127};
-    std::vector<double> s2_12 {0.318057,0.342211,0.268166,0.144322,0.0594132,0.150791,0.198765,0.223118,0.125696,0.13076};
-
-    std::vector<double> s3_0 {0.183994,0.147617,0.157511,0.103169,0.048201,0.0659638,0.0984609,0.161597,0.118222,0.11913};
-    std::vector<double> s3_1 {0.197672,0.132132,0.122288,0.114166,0.0878649,0.0443158,0.0894206,0.144983,0.109679,0.156585};
-    std::vector<double> s3_2 {0.126137,0.100628,0.0984234,0.0814949,0.114325,0.140295,0.0857684,0.0600427,0.11762,0.10179};
-    std::vector<double> s3_3 {0.233665,0.0743456,0.0853448,0.0724278,0.107279,0.125538,0.0953843,0.0806219,0.125486,0.0653372};
-    std::vector<double> s3_4 {0.10982,0.0908455,0.0639693,0.06953,0.087888,0.0642699,0.101738,0.0950527,0.108635,0.123369};
-    std::vector<double> s3_5 {0.0484245,0.0640231,0.0611758,0.0633151,0.0627003,0.0538626,0.0620353,0.0780036,0.0869519,0.105182};
-    std::vector<double> s3_6 {0.0239649,0.0342874,0.0376854,0.0363909,0.0419194,0.0660772,0.0691976,0.0469046,0.0562666,0.077267};
-    std::vector<double> s3_7 {0.0230572,0.0303226,0.067412,0.075418,0.0625091,0.0669989,0.0721015,0.0560667,0.0662387,0.0875055};
-    std::vector<double> s3_8 {0.0629415,0.0460941,0.038103,0.0503874,0.0504504,0.0433526,0.0617508,0.0548176,0.0763649,0.106015};
-    std::vector<double> s3_9 {0.0626543,0.0429949,0.0481168,0.054512,0.0555607,0.0675156,0.045034,0.0470775,0.0690823,0.0949183};
-    std::vector<double> s3_10 {0.04631,0.0492252,0.0668249,0.0802278,0.067229,0.0631284,0.142708,0.137129,0.150412,0.139596};
-    std::vector<double> s3_11 {0.106472,0.0601796,0.0680174,0.0562813,0.0667717,0.0881045,0.136633,0.091339,0.228361,0.233699};
-    std::vector<double> s3_12 {0.150304,0.125071,0.11733,0.0923151,0.0540728,0.0473615,0.0717769,0.142203,0.110861,0.119749};
-    
-    std::vector<double> s4_0 {0.0959528,0.0892871,0.0842947,0.0614009,0.0836869,0.0738636,0.0420024,0.0629121,0.0965327,0.0952605};
-    std::vector<double> s4_1 {0.0626595,0.0787988,0.0708688,0.0486974,0.0585101,0.0435107,0.0414365,0.0574661,0.0725602,0.106244};
-    std::vector<double> s4_2 {0.0612789,0.0648951,0.0642583,0.0917113,0.0607124,0.113542,0.0731946,0.0649092,0.0792023,0.100034};
-    std::vector<double> s4_3 {0.0924202,0.0910996,0.0925353,0.106219,0.100293,0.0735673,0.0409092,0.142577,0.0892915,0.104088};
-    std::vector<double> s4_4 {0.0715094,0.069977,0.103243,0.0817008,0.109558,0.147125,0.120675,0.108348,0.133299,0.120169};
-    std::vector<double> s4_5 {0.0468999,0.0576042,0.0650415,0.0600542,0.0665188,0.0824354,0.0447779,0.0635282,0.0679377,0.0780986};
-    std::vector<double> s4_6 {0.0323007,0.0305914,0.0430118,0.0464806,0.0476468,0.0687667,0.079692,0.0802159,0.0767127,0.108679};
-    std::vector<double> s4_7 {0.022648,0.0240504,0.0342847,0.0490668,0.0919981,0.0864038,0.0565428,0.080363,0.10728,0.0978839};
-    std::vector<double> s4_8 {0.0209806,0.0258241,0.0289348,0.0553144,0.0661455,0.0644648,0.0675239,0.0839875,0.0940147,0.109143};
-    std::vector<double> s4_9 {0.00839713,0.0250893,0.0488742,0.1197,0.0905045,0.104332,0.0718783,0.0638122,0.0886769,0.114337};
-    std::vector<double> s4_10 {0.0160199,0.0329117,0.0716176,0.0974793,0.157607,0.089648,0.142843,0.0856507,0.0825304,0.0981061};
-    std::vector<double> s4_11 {0.0357456,0.066561,0.0731135,0.137298,0.131607,0.107968,0.0979033,0.12352,0.148691,0.240314};
-    std::vector<double> s4_12 {0.0696981,0.0792081,0.0734567,0.05034,0.0493452,0.0432609,0.0395792,0.0533459,0.0664055,0.079075};
-
-    std::vector<std::vector<double>> v0;
-    v0.push_back(v0_0);
-    v0.push_back(v0_1);
-    v0.push_back(v0_2);
-    v0.push_back(v0_3);
-    v0.push_back(v0_4);
-    v0.push_back(v0_5);
-    v0.push_back(v0_6);
-    v0.push_back(v0_7);
-    v0.push_back(v0_8);
-    v0.push_back(v0_9);
-    v0.push_back(v0_10);
-    v0.push_back(v0_11);
-    v0.push_back(v0_12);
-
-    std::vector<std::vector<double>> v1;
-    v1.push_back(v1_0);
-    v1.push_back(v1_1);
-    v1.push_back(v1_2);
-    v1.push_back(v1_3);
-    v1.push_back(v1_4);
-    v1.push_back(v1_5);
-    v1.push_back(v1_6);
-    v1.push_back(v1_7);
-    v1.push_back(v1_8);
-    v1.push_back(v1_9);
-    v1.push_back(v1_10);
-    v1.push_back(v1_11);
-    v1.push_back(v1_12);
-
-    std::vector<std::vector<double>> v2;
-    v2.push_back(v2_0);
-    v2.push_back(v2_1);
-    v2.push_back(v2_2);
-    v2.push_back(v2_3);
-    v2.push_back(v2_4);
-    v2.push_back(v2_5);
-    v2.push_back(v2_6);
-    v2.push_back(v2_7);
-    v2.push_back(v2_8);
-    v2.push_back(v2_9);
-    v2.push_back(v2_10);
-    v2.push_back(v2_11);
-    v2.push_back(v2_12);
-
-    std::vector<std::vector<double>> v3;
-    v3.push_back(v3_0);
-    v3.push_back(v3_1);
-    v3.push_back(v3_2);
-    v3.push_back(v3_3);
-    v3.push_back(v3_4);
-    v3.push_back(v3_5);
-    v3.push_back(v3_6);
-    v3.push_back(v3_7);
-    v3.push_back(v3_8);
-    v3.push_back(v3_9);
-    v3.push_back(v3_10);
-    v3.push_back(v3_11);
-    v3.push_back(v3_12);
-
-    std::vector<std::vector<double>> v4;
-    v4.push_back(v4_0);
-    v4.push_back(v4_1);
-    v4.push_back(v4_2);
-    v4.push_back(v4_3);
-    v4.push_back(v4_4);
-    v4.push_back(v4_5);
-    v4.push_back(v4_6);
-    v4.push_back(v4_7);
-    v4.push_back(v4_8);
-    v4.push_back(v4_9);
-    v4.push_back(v4_10);
-    v4.push_back(v4_11);
-    v4.push_back(v4_12);
-
-    std::vector<std::vector<double>> e0;
-    e0.push_back(e0_0);
-    e0.push_back(e0_1);
-    e0.push_back(e0_2);
-    e0.push_back(e0_3);
-    e0.push_back(e0_4);
-    e0.push_back(e0_5);
-    e0.push_back(e0_6);
-    e0.push_back(e0_7);
-    e0.push_back(e0_8);
-    e0.push_back(e0_9);
-    e0.push_back(e0_10);
-    e0.push_back(e0_11);
-    e0.push_back(e0_12);
-
-    std::vector<std::vector<double>> e1;
-    e1.push_back(e1_0);
-    e1.push_back(e1_1);
-    e1.push_back(e1_2);
-    e1.push_back(e1_3);
-    e1.push_back(e1_4);
-    e1.push_back(e1_5);
-    e1.push_back(e1_6);
-    e1.push_back(e1_7);
-    e1.push_back(e1_8);
-    e1.push_back(e1_9);
-    e1.push_back(e1_10);
-    e1.push_back(e1_11);
-    e1.push_back(e1_12);
-
-    std::vector<std::vector<double>> e2;
-    e2.push_back(e2_0);
-    e2.push_back(e2_1);
-    e2.push_back(e2_2);
-    e2.push_back(e2_3);
-    e2.push_back(e2_4);
-    e2.push_back(e2_5);
-    e2.push_back(e2_6);
-    e2.push_back(e2_7);
-    e2.push_back(e2_8);
-    e2.push_back(e2_9);
-    e2.push_back(e2_10);
-    e2.push_back(e2_11);
-    e2.push_back(e2_12);
-
-    std::vector<std::vector<double>> e3;
-    e3.push_back(e3_0);
-    e3.push_back(e3_1);
-    e3.push_back(e3_2);
-    e3.push_back(e3_3);
-    e3.push_back(e3_4);
-    e3.push_back(e3_5);
-    e3.push_back(e3_6);
-    e3.push_back(e3_7);
-    e3.push_back(e3_8);
-    e3.push_back(e3_9);
-    e3.push_back(e3_10);
-    e3.push_back(e3_11);
-    e3.push_back(e3_12);
-
-    std::vector<std::vector<double>> e4;
-    e4.push_back(e4_0);
-    e4.push_back(e4_1);
-    e4.push_back(e4_2);
-    e4.push_back(e4_3);
-    e4.push_back(e4_4);
-    e4.push_back(e4_5);
-    e4.push_back(e4_6);
-    e4.push_back(e4_7);
-    e4.push_back(e4_8);
-    e4.push_back(e4_9);
-    e4.push_back(e4_10);
-    e4.push_back(e4_11);
-    e4.push_back(e4_12);
-
-    std::vector<std::vector<double>> s0;
-    s0.push_back(s0_0);
-    s0.push_back(s0_1);
-    s0.push_back(s0_2);
-    s0.push_back(s0_3);
-    s0.push_back(s0_4);
-    s0.push_back(s0_5);
-    s0.push_back(s0_6);
-    s0.push_back(s0_7);
-    s0.push_back(s0_8);
-    s0.push_back(s0_9);
-    s0.push_back(s0_10);
-    s0.push_back(s0_11);
-    s0.push_back(s0_12);
-
-    std::vector<std::vector<double>> s1;
-    s1.push_back(s1_0);
-    s1.push_back(s1_1);
-    s1.push_back(s1_2);
-    s1.push_back(s1_3);
-    s1.push_back(s1_4);
-    s1.push_back(s1_5);
-    s1.push_back(s1_6);
-    s1.push_back(s1_7);
-    s1.push_back(s1_8);
-    s1.push_back(s1_9);
-    s1.push_back(s1_10);
-    s1.push_back(s1_11);
-    s1.push_back(s1_12);
-
-    std::vector<std::vector<double>> s2;
-    s2.push_back(s2_0);
-    s2.push_back(s2_1);
-    s2.push_back(s2_2);
-    s2.push_back(s2_3);
-    s2.push_back(s2_4);
-    s2.push_back(s2_5);
-    s2.push_back(s2_6);
-    s2.push_back(s2_7);
-    s2.push_back(s2_8);
-    s2.push_back(s2_9);
-    s2.push_back(s2_10);
-    s2.push_back(s2_11);
-    s2.push_back(s2_12);
-
-    std::vector<std::vector<double>> s3;
-    s3.push_back(s3_0);
-    s3.push_back(s3_1);
-    s3.push_back(s3_2);
-    s3.push_back(s3_3);
-    s3.push_back(s3_4);
-    s3.push_back(s3_5);
-    s3.push_back(s3_6);
-    s3.push_back(s3_7);
-    s3.push_back(s3_8);
-    s3.push_back(s3_9);
-    s3.push_back(s3_10);
-    s3.push_back(s3_11);
-    s3.push_back(s3_12);
-
-    std::vector<std::vector<double>> s4;
-    s4.push_back(s4_0);
-    s4.push_back(s4_1);
-    s4.push_back(s4_2);
-    s4.push_back(s4_3);
-    s4.push_back(s4_4);
-    s4.push_back(s4_5);
-    s4.push_back(s4_6);
-    s4.push_back(s4_7);
-    s4.push_back(s4_8);
-    s4.push_back(s4_9);
-    s4.push_back(s4_10);
-    s4.push_back(s4_11);
-    s4.push_back(s4_12);
-
-    std::vector<std::vector<std::vector<double>>> v;
-    v.push_back(v0);
-    v.push_back(v1);
-    v.push_back(v2);
-    v.push_back(v3);
-    v.push_back(v4);
-
-    std::vector<std::vector<std::vector<double>>> e;
-    e.push_back(e0);
-    e.push_back(e1);
-    e.push_back(e2);
-    e.push_back(e3);
-    e.push_back(e4);
-
-    std::vector<std::vector<std::vector<double>>> s;
-    s.push_back(s0);
-    s.push_back(s1);
-    s.push_back(s2);
-    s.push_back(s3);
-    s.push_back(s4);
-
-    std::vector<std::vector<std::vector<std::vector<double>>>> r;
-    r.push_back(v);
-    r.push_back(e);
-    r.push_back(s);    
-
-    return r;
-}
-
-double xj_metric(std::vector<double> xj_sample, std::vector<std::vector<std::vector<std::vector<double>>>> values, int jetsamples){
-
-    double pt;
-    double xj;
-    int centrality = 0;
-    int pTbin = 0;
-    int xjbin = 0;
-
-    std::vector<std::vector<std::vector<double>>> xj_exp = values[0];
-    std::vector<std::vector<std::vector<double>>> xj_exp_err = values[1];
-    std::vector<std::vector<std::vector<double>>> xj_exp_syst = values[2];
-    std::vector<std::vector<std::vector<double>>> xj_data(5, std::vector<std::vector<double>>(13, std::vector<double>(10)));
-    //std::vector<std::vector<std::vector<double>>> xj_data_err(5, std::vector<std::vector<double>>(12, std::vector<double>(10)));
-
-   
-    for(int i = 0; i<xj_sample.size()/2-2; i++){
-
-        pt = xj_sample[2*i];
-        xj = xj_sample[2*i+1];
-        int ip = i/jetsamples;
-        centrality = centralityclass(ip); // adjust for different jetsample #s <- 
-        pTbin = pTsort(pt);
-        xjbin = xjsort(xj);
-
-        //std::cout << pt << " " << xj << " " << centrality << " " << pTbin << " " << xjbin << std::endl;
-
-        if((pTbin == -1)||(xjbin == -1)||(centrality==-1)){
-            continue;
-        }
-        xj_data[centrality][pTbin][xjbin] +=1;    
-    }
-    std::vector<std::vector<int>> integral(5, std::vector<int> (12));
-
-    for(int j = 0; j<5; j++){
-        for(int k = 0; k<12; k++){
-            for(int l = 0; l<10; l++){
-                if(xj_data[j][k][l] >0){
-                //std::cout << j << " " << k << " " << l << " " << xj_data[j][k][l] << std::endl;
-                }
-                integral[j][k]+=xj_data[j][k][l];
-            }
-        }
-    }
-    
-    double diff = 0;
-
-    for(int j = 0; j<5; j++){
-        for(int k = 0; k<13; k++){
-            for(int l = 0; l<10; l++){
-                if(integral[j][k] > 0){
-                xj_data[j][k][l] /= integral[j][k];
-                }
-                else xj_data[j][k][l] = 0;
-                diff += (xj_data[j][k][l] - xj_exp[j][k][l])*(xj_data[j][k][l] - xj_exp[j][k][l])*(xj_binwidth(l))*(1/((xj_exp_err[j][k][l]*xj_exp_err[j][k][l])+(xj_exp_syst[j][k][l]*xj_exp_syst[j][k][l])));
-            }
-        }
-    }
-
-    return diff;
-}
-
-std::vector<std::vector<std::vector<double>>> xj_metric_central(std::vector<double> xj_sample, std::vector<std::vector<std::vector<std::vector<double>>>> values){
-    
-    //std::cout << "xjmetric" << std::endl;
-    /*std::vector<double> jetfreq = {
-    0.48078,
-    0.18828,
-    0.1396,
-    0.07704,
-    0.05137,
-    0.02716,
-    0.01596,
-    0.00957,
-    0.00532,
-    0.00264,
-    0.00188,
-    0.0004,
-    };*/
-    
-    double pt;
-    double xj;
-    int pTbin = 0;
-    int xjbin = 0;
-    double diff = 0;
-    double xj_binval = 0;
-    double xj_binerr = 0;
-    //double totint = 0;
-    std::vector<double> integral(12,0);
-
-
-    std::vector<std::vector<double>> xj_exp = values[0][0];
-    std::vector<std::vector<double>> xj_exp_err = values[1][0];
-    std::vector<std::vector<double>> xj_exp_syst = values[2][0];
-    std::vector<std::vector<double>> xj_data(12, std::vector<double>(10,0));
-    std::vector<std::vector<double>> xj_true_errors(12, std::vector<double>(10,0));
-    std::vector<std::vector<double>> errors(12, std::vector<double>(10,0));
-    std::vector<std::vector<std::vector<double>>> returnarr(2,std::vector<std::vector<double>>(12, std::vector<double>(10,0)));
-    
-    // fill xj data array
-    for(int i = 0; i<xj_sample.size()/2-2; i++){
-
-        pt = xj_sample[2*i];
-        xj = xj_sample[2*i+1];
-        pTbin = pTsort(pt);
-        xjbin = xjsort(xj);
-
-        //std::cout << pt << " " << xj << " " << pTbin << " " << xjbin << std::endl;
-
-        if((pTbin == -1)||(xjbin == -1)){
-            continue;
-        }
-        xj_data[pTbin][xjbin] +=1;    
-    }
-
-    // integrate and normalize each xj distribution for a fixed pT by calculating the integral
-
-    for(int k = 0; k<12; k++){
-        for(int l = 0; l<10; l++){
-            //if(xj_data[k][l] >0){
-            //std::cout << k << " " << l << " " << xj_data[k][l] << std::endl;
-            //}
-            integral[k]+=xj_data[k][l]*xj_binwidth(l);      
-        }
-    }
-
-    for(int k = 0; k<12; k++){
-        for(int l = 0; l<10; l++){
-            if(integral[k] > 0){
-                xj_binval = xj_data[k][l] /= integral[k];
-                xj_binerr = sqrt(xj_data[k][l])/integral[k];
-            }
-            else {
-                xj_binval = 0;
-                xj_binerr = 0;
-            };
-            diff += (xj_binwidth(l))*sqrt((xj_binval - xj_exp[k][l])*(xj_binval - xj_exp[k][l])*(1/((xj_exp_err[k][l]*xj_exp_err[k][l])+(xj_exp_syst[k][l]*xj_exp_syst[k][l])+xj_binerr*xj_binerr)));
-             //diff += (xj_binwidth(l))*sqrt((xj_binval - xj_exp[k][l])*(xj_binval - xj_exp[k][l])*(1/((xj_exp_err[k][l]*xj_exp_err[k][l])+(xj_exp_syst[k][l]*xj_exp_syst[k][l]))));
-             //errors[k][l] = (xj_binwidth(l))*sqrt((xj_binval - xj_exp[k][l])*(xj_binval - xj_exp[k][l])*(1/((xj_exp_err[k][l]*xj_exp_err[k][l])+(xj_exp_syst[k][l]*xj_exp_syst[k][l]))));
-            
-            errors[k][l] = (xj_binwidth(l))*sqrt((xj_binval - xj_exp[k][l])*(xj_binval - xj_exp[k][l])*(1/((xj_exp_err[k][l]*xj_exp_err[k][l])+(xj_exp_syst[k][l]*xj_exp_syst[k][l])+xj_binerr*xj_binerr)));
-           
-        }
-        
-    }
-    
-    returnarr[0] = xj_data;
-    returnarr[1] = errors;
-    std::cout << "xj metric run with values: " << diff << std::endl;
-    //return diff/46.0987;
-    return returnarr;
-}
-
-std::tuple<std::vector<double>,std::vector<double>> xj_metric_central_aux(std::vector<std::vector<double>> xj_hists, std::vector<std::vector<std::vector<std::vector<double>>>> values){
-
-    double xj_binval=0;
-    std::vector<double> pctdiff(12,0);
-    std::vector<double> pearson(12,0);
-
-    std::vector<double> mean_vals(12,0);
-    std::vector<double> mean_hists(12,0);
-
-    std::vector<double> std_vals(12,0);
-    std::vector<double> std_hists(12,0);
-
-    std::vector<std::vector<double>> xj_exp = values[0][0];
-    std::vector<std::vector<double>> xj_exp_err = values[1][0];
-    std::vector<std::vector<double>> xj_exp_syst = values[2][0];
-
-
-    std::vector<std::vector<double>> xj_true_errors(12, std::vector<double>(10,0));
-    std::vector<std::vector<double>> errors(12, std::vector<double>(10,0));
-    std::vector<std::vector<std::vector<double>>> returnarr(2,std::vector<std::vector<double>>(12, std::vector<double>(10,0)));
-
-    for(int i = 0; i<12; i++){
-        for(int j = 0; j<10; j++){
-             mean_vals[i] += xj_exp[i][j]*xj_binwidth(j);
-             mean_hists[i] += xj_hists[i][j]*xj_binwidth(j);
-        }
-    }
-    for(int i = 0; i<12; i++){
-        for(int j = 0; j<10; j++){
-             std_vals[i] += (xj_exp[i][j] - mean_vals[i])*(xj_exp[i][j] - mean_vals[i])*xj_binwidth(j);
-             std_hists[i] += (xj_hists[i][j] - mean_hists[i])*(xj_hists[i][j] - mean_hists[i])*xj_binwidth(j);
-        }
-    }
-
-
-    // integrate and normalize each xj distribution for a fixed pT by calculating the integral
-
-    for(int k = 0; k<12; k++){
-        for(int l = 0; l<10; l++){
-            xj_binval = xj_hists[k][l];
-            pctdiff[k] += (xj_binwidth(l))*abs(xj_binval - xj_exp[k][l])*0.5;
-            pearson[k] += ((xj_exp[k][l] - mean_vals[k])*(xj_hists[k][l] - mean_hists[k])*xj_binwidth(l))/sqrt(std_hists[k]*std_vals[k]);
-            
-        }
-        
-    }
-    
-    
-    std::tuple<std::vector<double>,std::vector<double>> a = std::make_tuple(pctdiff,pearson);
-    //return diff/46.0987;
-    return a;
-}
-
-std::vector<std::vector<double>> raa_metric(std::vector<double> xj_sample){
-
-    // instantiate # of jets
-
-    int p = 0;
-    double raa_val = 0;
-    double raa_uncert = 0;
-    int jets = 1000000/(xj_sample.size()/2);
-    std::vector<double> raa_data = {0.402193,0.440119,0.489933,0.540745,0.584472,0.593024,0.61469,0.631513,0.654529,0.659,0.668449,0.664496};
-    std::vector<double> raa_stat = {0.00239022,0.00290581,0.00380458,0.00509938,0.00327803,0.00253421,0.00272126,0.00377121,0.00540125,0.00763996,0.009654,0.0193572};
-    std::vector<double> raa_syst = {0.0278413,0.0246902,0.0225583,0.0302581,0.030389,0.0327718,0.0336263,0.0360217,0.0373508,0.0392692,0.0474922,0.0483751};
-    
-
-    std::vector<int> pythia_data = {482934,187996,140144,75555,50381,26371,16458,9595,5251,2835,1958,522};
-    std::vector<double> raa_model(12,0);
-    //std::vector<double> raa_model_uncert(12,0);
-
-    for(int i =0; i<xj_sample.size()/2; i++){
-            p = xj_sample[2*i]*1.0;
-
-            if((p >= 100) && (p < 112.202)){
-                raa_model[0]+=jets;
-            }
-            else if((p >= 112.202) && (p < 125.893)){
-                raa_model[1]+=jets;
-            }
-            else if((p >= 125.893) && (p < 141.254)){
-                raa_model[2]+=jets;
-            }
-            else if((p >= 141.254) && (p < 158.489)){
-                raa_model[3]+=jets;
-            }
-            else if((p >= 158.489) && (p < 177.828)){
-                raa_model[4]+=jets;
-            }
-            else if((p >= 177.828) && (p < 199.526)){
-                raa_model[5]+=jets;
-            }
-            else if((p >= 199.526) && (p < 223.872)){
-                raa_model[6]+=jets;
-            }
-            else if((p >= 223.872) && (p < 251.189)){
-                raa_model[7]+=jets;
-            }
-            else if((p >= 251.189) && (p < 281.838)){
-                raa_model[8]+=jets;
-            }
-            else if((p >= 281.838) && (p < 316.118)){
-                raa_model[9]+=jets;
-            }
-            else if((p >= 316.118) && (p < 398)){
-                raa_model[10]+=jets;
-            }
-            else if((p >= 398) && (p < 500)){
-                raa_model[11]+=jets;
-            }
-          
-        }
-
-
-    std::vector<double> raa_err(12,0);
-
-    for(int j = 0; j<12; j++){
-
-        raa_val = 1.0*raa_model[j]/pythia_data[j];
-        raa_uncert = 1.0*sqrt(raa_model[j])/pythia_data[j];
-
-        //raa_err[j] = sqrt((raa_val - raa_data[j])*(raa_val - raa_data[j])/(raa_stat[j]*raa_stat[j] + raa_syst[j]*raa_syst[j]+raa_uncert*raa_uncert));
-        raa_err[j] = sqrt((raa_val - raa_data[j])*(raa_val - raa_data[j])/(raa_stat[j]*raa_stat[j] + raa_syst[j]*raa_syst[j]+raa_uncert*raa_uncert));
-        raa_model[j]/=pythia_data[j];
-    }
-
-    std::vector<std::vector<double>> raas = {raa_model,raa_err};
-    return raas;
-}
-
-double compute(std::vector<double> c, std::vector<double> c_lim, double dt, int iters, int jetsamples, std::vector<std::vector<std::vector<std::vector<double>>>> values, std::vector<std::vector<double>> data){
-    
-    //std::cout << "compute" << std::endl;
-    
-    std::vector<double> xj = xj_sample(c,c_lim,dt,iters,jetsamples,data);
-    //return xj_metric(xj,values,jetsamples);
-    double diff;
-    std::vector<std::vector<std::vector<double>>> a = xj_metric_central(xj,values);
-    for(int i = 0; i<a.size(); i++){
-        for(int j = 0; j<a[1][0].size(); j++){
-            
-        diff+=a[1][i][j];
-        }
-    }
-    return diff;
-}
-
-std::tuple<std::vector<std::vector<std::vector<double>>>,std::vector<std::vector<double>>> compute2(std::vector<double> c, std::vector<double> c_lim, double dt, int iters, int jetsamples, std::vector<std::vector<std::vector<std::vector<double>>>> values, std::vector<std::vector<double>> data){
-    std::vector<double> xj = xj_sample(c,c_lim,dt,iters,jetsamples,data);
-    std::vector<std::vector<std::vector<double>>> a = xj_metric_central(xj,values);
-    std::vector<std::vector<double>> raa = raa_metric(xj);
-    return std::make_tuple(a,raa);
-}
-
-void filewrite(std::string filename,std::vector<double> c, std::vector<double> c_lim, double dt, int iters, int jetsamples, std::vector<std::vector<std::vector<double>>> xj_metric_central,std::vector<std::vector<double>> raametric,std::vector<double> pearson, std::vector<double> pct){
-
-    std::ofstream file(filename);
-    double count;
-    double raa_err=0;
-    double pct_err=0;
-    double pearson_err = 0;
-
-    file << "C Vector: ";
-    for(int m = 0; m<c.size(); m++){
+    void filewrite(vector<vector<vector<double>>> dists,vector<vector<vector<vector<double>>>> values){
+        cout << "filewrite" << endl;
+        ofstream file(name);
+
+        file << "C Vector: ";
+        for(int m = 0; m<c.size(); m++){
         file << c[m] << " ";
+        }
+        file << endl;
+
+        double a = likelihood(dists,values);
+
+        file << "dt: " << dt << endl;
+        file << "events: " << events << endl;
+        file << "dijets: " << events*jetsamples << endl;
+        file << "subsamples: " << subsamples << endl;
+        file << "Likelihood: " << a << endl;
+        //file << "Residuals: " << residuals(dists,values,1.0*events*jetsamples/subsamples) << endl;
+        file << "Data: " << endl;
+
+        vector<vector<double>> A = mean_data(dists);
+        for(int i = 0; i< A.size(); i++){
+            for(int j = 0; j<A[0].size(); j++){
+            file << setw(12) << A[i][j];
+            }
+            file << endl;
+        }
+
+        file << "Errors: " << endl;
+
+        vector<vector<double>> B = std_data(dists);
+        for(int i = 0; i< B.size(); i++){
+            for(int j = 0; j<B[0].size(); j++){
+            file << setw(12) << B[i][j];
+            }
+            file << endl;
+        }
+
+        file.close();
     }
-    file << std::endl;
-
-    file << "C Limit Vector: ";
-    for(int m = 0; m<c.size(); m++){
-        file << c_lim[m] << " ";
-    }
-    file << std::endl;
-
-    file << "dt: " << dt << std::endl;
-    file << "events: " << iters << std::endl;
-    file << "dijets: " << iters*jetsamples << std::endl;
-
     
-    file << "Raa: "; 
-    for(int n = 0; n<raametric[0].size(); n++){
-        file << std::setw(10) << raametric[0][n] << " ";
-    }
-    file << std::endl;
-    file << "Raa errors: ";
-    for(int n = 0; n<raametric[0].size(); n++){
-        file << std::setw(10) << raametric[1][n] << " ";
-        raa_err += raametric[1][n];
-    }
-    file << std::endl;
+    double execute(vector<double> c_lim, vector<vector<vector<vector<double>>>> values){
+        vector<double> xj = xjsample(c_lim);
+        vector<vector<vector<double>>> dists = coag(xj);
+        filewrite(dists,values);
 
-    file << "Pearson: ";
-    for(int n = 0; n<pearson.size(); n++){
-        file << std::setw(10) << pearson[n] << " ";
-        pearson_err+= pearson[n];
-    }
-    file << std::endl;
-    file << "Percent: ";
-    for(int n = 0; n<pct.size(); n++){
-        file << std::setw(10) << pct[n] << " ";
-        pct_err += pct[n];
-    }
-    file << std::endl;
-
-
-    file << "xj histogram data" << std::endl;
-    for(int i = 0; i<xj_metric_central[0].size(); i++){
-        for(int j = 0; j<xj_metric_central[0][1].size(); j++){
-            file << std::setw(10) << xj_metric_central[0][i][j] << " ";
-        }
-        file << std::endl;
+        return likelihood(dists,values);
     }
 
-    file << "xj histogram errors" << std::endl;
-    for(int i = 0; i<xj_metric_central[1].size(); i++){
-        for(int j = 0; j<xj_metric_central[1][1].size(); j++){
-            file << std::setw(10) << xj_metric_central[1][i][j] << " ";
-            count+= xj_metric_central[1][i][j];
-        }
-        file << std::endl;
-    }    
-    
-    file << "xj error: " << count << std::endl;
-    file << "Raa error: " << raa_err << std::endl;
-    file << "Pearson error:  " << pearson_err << std::endl;
-    file << "Percent error: " << pct_err << std::endl;
+};
 
-    file.close();
+void dimscan(int idx, string filetag, vector<double> c_lim, vector<vector<vector<vector<double>>>> values){
 
+    string name;
+    vector<double> c = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
+    for(int i = 0; i<60; i++){
+        c[idx] = 0.05*i;
+        name = filename(filetag,i);
+        datapoint d(c,name);
+        d.execute(c_lim,values);
+    }
 }
 
-double gradindex(double f, std::vector<double> c, std::vector<double> c_lim, double dc,double dt,int iters,int jetsamples,std::vector<std::vector<std::vector<std::vector<double>>>> values, std::vector<std::vector<double>> data, int index = 12){
-    c[index]+= dc;    
-    double q = compute(c,c_lim,dt,iters,jetsamples,values,data);
-    c[index]-= dc;
-    return (q-f)/dc;
-}
+void gradient_descent(string filetag, vector<double> c_init, vector<double> c_lim,vector<vector<vector<vector<double>>>> values, int steps){
 
-std::vector<double> grad(double f,std::vector<double> c, std::vector<double> c_lim, std::vector<double> dc, double dt, int iters, int jetsamples, std::vector<std::vector<std::vector<std::vector<double>>>> values, std::vector<std::vector<double>> data){
+    string name;
+    name = filename(filetag,1);
+    vector<double> c_old = c_init;
+    vector<double> c_new = c_init;
+    datapoint d(c_new,name);
 
-    std::vector<double> gradient(c.size(),0);
-    for(int i = 0; i<c.size(); i++){
-        gradient[i] = gradindex(f,c,c_lim,dc[i],dt,iters,jetsamples,values,data,i);
-    }
-    return gradient;
-}
+    double old_value = d.execute(c_lim,values);
+    double value = 0;
+    double totalgrad = 0;
+    vector<double> gradient(c_lim.size(),0);
 
-int killtimesteps(std::vector<double> c, double bound, std::vector<double> grad, double gradlim){
-
-    int r = 0;
-    double gsize = 0;
-    for(int i = 0; i<c.size(); i++){
-        if(c[i] > bound){
-            r = 1;
-            break;
-        }
-        gsize += grad[i]*grad[i];
-    }
-    if(gsize >= gradlim){
-        r = 1;
-    }
-    return r;
-}
-
-std::vector<std::vector<double> > timesteps(std::vector<double> ci,std::vector<double> c_lim,std::vector<double> dc,int steps,double dt,int iters, int jetsamples, std::vector<std::vector<std::vector<std::vector<double>>>> values, std::vector<std::vector<double>> data, double bound, double gradlim){
-
-    //figure out stepsize
-    double stepsize = 1.0;
-
-    std::vector<double>  c = ci;
-    std::vector<double>  gradient(c.size(),0);
-    double f;
-    std::vector<double> inf;
-    std::vector<std::vector<double> > infs;
-    double bbn = 0;
-    double bbd = 0;
-
-    for(int i = 0; i<steps;i++){
-        f = compute(c,c_lim,dt,iters,jetsamples,values,data);
-        gradient = grad(f,c,c_lim,dc,dt,iters,jetsamples,values,data);
-        
-        inf.push_back(i*1.0);
-        for(int j = 0; j<c.size();j++){
-            inf.push_back(c[j]);
-        }
-        inf.push_back(f);
-        for(int l = 0; l<c.size();l++){
-            inf.push_back(gradient[l]);
-        }
-        infs.push_back(inf);
-        inf.clear();
-
-        for(int k = 0; k<c.size();k++){
-            c[k] -= gradient[k]*stepsize;
-        }
-        
-        /*for(int n = 0; n<c.size(); n++){
-        bbn += (gradient[n]*gradient[n]*stepsize*stepsize);
-        bbd += (gradient[n]*gradient[n]*stepsize);
-         }
-        stepsize = bbn/bbd;
-        bbn = 0;
-        bbd = 0;*/
-
-        if(killtimesteps(c,bound,gradient,gradlim) > 0){
-            break;
-        }
-        
-    }
-    return infs;
-}
-
-std::vector<std::vector<double>> dimopt(int index, std::vector<double> ci, std::vector<double> c_lim, std::vector<double> dc, int steps, double dt, int iters, int jetsamples, std::vector<std::vector<std::vector<std::vector<double>>>> values, std::vector<std::vector<double>> data){
-    //figure out stepsize
-    double stepsize = 0.001;
-    std::vector <double> c = ci;
-    double gradient = 0;
-    double f;
-    std::vector<double> inf;
-    std::vector<std::vector<double> > infs;
+    ofstream file(filename(filetag,0));
     
 
-    for(int i = 0; i<steps;i++){
-        f = compute(c,c_lim,dt,iters,jetsamples,values,data);
-        gradient = gradindex(f,c,c_lim,dc[index],dt,iters,jetsamples,values,data,index);
+    for(int i = 0; i<steps; i++){
         
-        inf.push_back(i*1.0); 
-        inf.push_back(c[index]);
-        inf.push_back(f);
-        inf.push_back(gradient);
-        infs.push_back(inf);
-        inf.clear();
-
-        std::cout << "Step: " << i << " param: " << c[index] << " function: "  << f << " deriv: " << gradient << std::endl;
-
-        c[index] -= gradient*stepsize;
-
-        if(c[index] > 1.5 || c[index] < -0.5 ){
-            break;
+        //write stuff to file
+        cout << "c old timestep" << endl;
+        file << setw(10) << old_value;
+        for(int i = 0; i<c_lim.size(); i++){
+            file << setw(10) << c_old[i];
+            cout << c_old[i] << " ";
         }
-        if(abs(gradient) < 0.01){
-            std::cout << "converged :)" << std::endl;
-            break;
-        }
-        if(abs(gradient) > 1000){
-            std::cout << "gradient too large :("  << std::endl;
-            break;
+        file << endl;
+        cout << endl;
+        
+        cout << "c new timestep" << endl;
+        //update position according to gaussian proposal
+        vector<double> rands = gauss_randoms(c_lim.size());
+        for(int i = 0; i<c_lim.size(); i++){
+            c_old[i] += 0.05*rands[i];
+            cout << c_old[i] << " ";
         }
         
-    }
-    return infs;
+        //evaluate function at this point
+        name = filename(filetag,i+2);
+        datapoint q(c_old,name);
+        value = q.execute(c_lim,values);
+        cout << "old value" << old_value << endl;
+        cout << "new value" << value << endl;
 
-}
+        if(value > old_value){
 
-void dimscan(std::string filetag, int index, double increment, std::vector<double> c_lim, double dt, int iters, int jetsamples, std::vector<std::vector<std::vector<std::vector<double>>>> values, std::vector<std::vector<double>> data){
+            cout << " step not accepted, going back... " << endl;
 
-    std::vector<double> c = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
-    std::vector<std::vector<std::vector<double>>> xjmetric(2,std::vector<std::vector<double>>(12, std::vector<double> (10)));
-    std::vector<std::vector<double>> raametric(2,std::vector<double>(12,0));
-
-    std::vector<double> pearson(12,0);
-    std::vector<double> pct(12,0);
-    double cval = 0;
-    double cumulative = 0;
-    double raa_err = 0;
-
-    for(int i = 0; i<(int(3/increment))+1; i++){
-
-        //std::cout << "increment " << i << std::endl;
-        cval = increment*i;
-        c[index]= cval;
-        
-        std::tuple<std::vector<std::vector<std::vector<double>>>,std::vector<std::vector<double>>> comp2 = compute2(c,c_lim,dt,iters,jetsamples,values,data);
-        xjmetric= std::get<0>(comp2);
-        raametric = std::get<1>(comp2);
-        std::tuple<std::vector<double>,std::vector<double>> aux = xj_metric_central_aux(xjmetric[0],values);
-        pearson = std::get<1>(aux);
-        pct = std::get<0>(aux);
-        filewrite(filename(filetag,i),c,c_lim,dt,iters,jetsamples,xjmetric,raametric,pearson,pct);
-
-        for(int i = 0; i<xjmetric[1].size(); i++){
-            for(int j = 0; j<xjmetric[1][0].size(); j++){
-                cumulative+=xjmetric[1][i][j];
+            for(int i = 0; i<c_lim.size(); i++){
+                c_old[i] -= 0.005*rands[i];
             }
         }
-        
-        for(int q = 0; q<raametric[1].size(); q++){
-            raa_err+= raametric[1][q];
-        }
-        std::cout << i << " " << cval << " xj error: " << cumulative << " Raa error: " << raa_err << std::endl;
-        cumulative =0;
-        raa_err = 0;
-    }
-    
-}
+        else{
+        //calculate gradient
+            cout << " step accepted!" << endl;
 
-void PSOrun(std::string outfilename,std::vector<std::vector<double> > positions, std::vector<double> c_lim, int steps, std::vector<double> dc, double dt, int iters, int jetsamples, double  gradlim, double bound){
-
-    //early cutoff
-
-     std::vector<std::vector<double> > tsteps;
-     std::ofstream file(outfilename);
-     std::vector<std::vector<std::vector<std::vector<double>>>> values;
-     std::vector<std::vector<double>> data = eprofile("energies.dat");
-     values = importdata();
-  
-    for(int i = 0; i<positions.size(); i++){
-        std::vector<std::vector<double> > tsteps = timesteps(positions[i],c_lim,dc,steps,dt,iters,jetsamples,values,data,bound,gradlim);
-
-        for(int j = 0; j<tsteps.size(); j++){
-            for(int k = 0; k<tsteps[0].size(); k++){
-                file << tsteps[j][k] << " ";
+            for(int i = 0; i<c_lim.size(); i++){
+                gradient[i] = (value - old_value)/(0.05*rands[i]);
+                if((gradient[i] >= 1000) || (gradient[i] <= -1000)){
+                    gradient[i] = rands[i];   
+                }
             }
-            file << std::endl;
-        }
+
+            //move
+            for(int i = 0; i<c_lim.size(); i++){
+                c_old[i]-= 0.005*(gradient[i]);
+                
+            }
+            datapoint m(c_old,name);
+            old_value = m.execute(c_lim,values);  
+            }
 
     }
-    file.close();
 }
 
 int main(){
 
-    // Default c coeff values
+     // Default c coeff values
     double c0 = 0.75;
     double c1 = 0.04;
     double c2 = 0.0012;
@@ -1689,41 +239,28 @@ int main(){
     double c25 = 0.000004;
     double c26 = 0.0000002;
 
-    std::vector<double> c  = {0.2,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
-    std::vector<double> c_lim = {c0,c1,c2,c3,c4,c5,c6,c7,c8,c9,c10,c11,c12,c13,c14,c15,c16,c17,c18,c19,c20,c21,c22,c23,c24,c25,c26};
-    std::vector<double> dc = {c0*0.01,c1*0.01,c2*0.01,c3*0.01,c4*0.01,c5*0.01,c6*0.01,c7*0.01,c8*0.01,c9*0.01,c10*0.01,c11*0.01,c12*0.01,c13*0.01,c14*0.01,c15*0.01,c16*0.01,c17*0.01,c18*0.01,c19*0.01,c20*0.01,c21*0.01,c22*0.01,c23*0.01,c24*0.01,c25*0.01,c26*0.01};    
-
-    std::vector<std::vector<std::vector<std::vector<double>>>> values = importdata();
-    std::vector<std::vector<double>> eprof = eprofile("energies.dat");
-
-    // TESTING SPACE 
-
-    // 1.) test dimscan for varying dT 
-    // 2.) dimscan each variable with correct dt <- or just compute
-
+    vector<vector<vector<vector<double>>>> values = importdata();
+    vector<double> c_lim = {c0,c1,c2,c3,c4,c5,c6,c7,c8,c9,c10,c11,c12,c13,c14,c15,c16,c17,c18,c19,c20,c21,c22,c23,c24,c25,c26};
+    //vector<vector<double>> eprof = eprofile("../energies.dat");    
     
+    vector<double> c = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
+    //dimscan(0,"cjq_",c_lim,values);
+    gradient_descent("tgd_",c,c_lim,values,100);
+    //cout << xjs.size() << endl;
+    //for(int i=0; i<xjs[0].size(); i++){
+    //    cout << xjs[0][i] << endl;
+    //}
 
+
+    //printvec(data_dist(2000,values));
+    //printvec(xjs);
+
+    //vector<vector<double>> dists = xj_dist(qqbar);
     
-    dimscan("idxpass/idx_4/idxpass_4_",4,0.1,c_lim,1,5000,20,values,eprof);
+    //datapoint cho(c,1,5000,10,5,"check.dat");
+    //cho.execute(c_lim,values);
 
-    /*std::vector<std::vector<std::vector<double>>> xjmetric;
-    std::vector<std::vector<double>> raametric;
-    double dt = 1;
-    for(int i = 1; i<11; i++){
 
-        int jetsamples = 10;
-        int iters = 500*i;
 
-        for(int j = 0; j<5; j++){
-            std::tuple<std::vector<std::vector<std::vector<double>>>,std::vector<std::vector<double>>> comp2 = compute2(c,c_lim,dt,iters,jetsamples,values,eprof);
-            xjmetric= std::get<0>(comp2);
-            raametric = std::get<1>(comp2);
-            filewrite(filename("jetstest",i*5+j),c,c_lim,dt,iters,jetsamples,xjmetric,raametric);
-
-        }        
-
-    }*/
-
-    return 0;
-
+return 0;
 }
