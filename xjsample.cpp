@@ -115,49 +115,90 @@ vector<double> randoms(int length = 2){
     return m;
 }
 
-double jet_susceptibility(double pT = 0){
+vector<double> gauss_randoms(int length){
+    random_device rd;
+    mt19937 gen(rd());
+    vector<double> m(length,0);
 
-    vector<double> sus3 = {0.153,0.304,0.373,0.320,0.170,0.078,0.031,0.017,0.015,0.015,0.010,0.006};
-    vector<double> sus2 = {0.123,0.255,0.375,0.460,0.398,0.234,0.111,0.048,0.029,0.023,0.015,0.006};
-    vector<double> sus1 = {0.063,0.096,0.144,0.205,0.232,0.178,0.094,0.044,0.023,0.015,0.010,0.006};
-    //vector<double> x = {0.0035,0.0055,0.008,0.012,0.018,0.027,0.041,0.063,0.094,0.145,0.22,0.33};
-    double intsus1 = 1.11;
-    double intsus2 = 2.077;
-    double intsus3 = 1.492;
-    double int0 = 0;
-
-    vector<double> sus(12);
-    if(pT > 315){
-        sus=sus3;
-        int0 = intsus3;
-
+    normal_distribution<double> distribution(0,1);
+    for(int i =0; i<length; i++){
+        double ran = distribution(gen);
+        m[i] = ran;
     }
-    else if(pT > 215){
-        sus=sus2;
-        int0 = intsus2;
+
+    return m;
+}
+
+double temp_fraction(double dt){
+    if(dt == 0){
+        return 0;
     }
     else{
-        sus=sus1;
-        int0 = intsus1;
+        double T = 380*pow(dt,-1/2.5);
+        double e1 = 12/(1+exp(0.025*(180-380)));
+        double e = 12/(1+exp(0.025*(180-T)));
+        // cout << setw(12) << dt << setw(12) << T << setw(12) << e/e1 << endl;
+        return e/e1;
     }
+}
 
-    vector<double> a = randoms(1);
-    double c = 0;
-    double xv = 0;
+vector<double> energypick2(){
 
+    vector<double> a= randoms(1);
+    double r = a[0]*100000;
+    int n= floor(r);
+    //cout << n << endl;
 
-    while(c < a[0]){
-        c+= sus[xv]/int0;
-        xv+=1;
-    }
-    xv-=1;
+    std::ifstream file("../t.txt");
+    std::vector<double> result(4,0);
 
+    if (file.is_open()) {
+        std::string line;
+        for (int i = 0; i < n; ++i) {
+            if (!std::getline(file, line)) {
+                std::cerr << "Error: File has less than " << n << " lines.\n";
+                return result;
+            }
+        }
 
-    double raa = 0.8 - (0.4/11)*xv;
-    double sloss_v = 0.255-0.255*raa;
+        double pt1,pt2,rg1,rg2;
+        int q,v;
+        std::istringstream iss(line);
+        if(iss >> pt1 >> rg1 >> pt2 >> rg2 >> q >> v){
+            result[0] = pt1;
+            result[1] = pt2;
+            result[2] = rg1;
+            result[3] = rg2;
+        }
     
+    } 
+    else {
+        std::cerr << "Error opening file " << "filename" << "\n";
+    }
 
-    return sloss_v/0.0765;
+    return result;
+}
+
+double suscept(double rg){
+    if(rg < 0){
+        rg = sqrt(rg*rg);
+    }
+    double raa = 0.2- 0.25*log10(rg);
+    //cout << "raa " << raa << endl;
+    //double pT = pow(10,((raa+0.37)/0.4));
+    double pT = 9000*pow((raa+0.14),13)+70;
+    //cout << "pT " << pT << endl;
+    if(pT <=20){
+        pT = 21;
+    }
+    double sloss = 1.45*(pow(pT-20,-0.5));
+    //cout << sloss << endl;
+    //cout << sloss << endl;
+    if(sloss != sloss){
+        cout << "nan sloss: rg: " << rg << " raa: " << raa << " pT: " << pT << endl;
+    }
+    return sloss/(1.7*0.0821123);
+
 }
 
 tuple<int,int> energypick(vector<vector<double>> data){
@@ -352,7 +393,7 @@ vector<double> pathlength(double theta, vector<vector<double>> profile, double d
     return paths;
 }
 
-double energyloss(vector<double> c, vector<double> c_lim, double Ei, double theta, vector<vector<double> > profile, double dt){
+double energyloss(vector<double> c, vector<double> c_lim, double Ei, double rg, double theta, vector<vector<double> > profile, double dt){
 
     //cout << "eloss" << endl;
 
@@ -361,8 +402,12 @@ double energyloss(vector<double> c, vector<double> c_lim, double Ei, double thet
     double x = 1.0*get<0>(pos);
     double y = 1.0*get<1>(pos);
     double E = Ei;
-    //double js = jet_susceptibility(E);
-    double js = 1;
+    double js = suscept(rg);
+    if(js != js){
+        cout << "nan js" << endl;
+        js = 1;
+    }
+    //double js = 1;
     double e_x = 0;
     double d = 0;
     double d2 = 0;
@@ -375,7 +420,7 @@ double energyloss(vector<double> c, vector<double> c_lim, double Ei, double thet
         //cout << "x: " << x << " y: " << y << " d: " << d << " e_x: " << e_x << " E: " << E << endl;
 
         if(i > 1){
-            if((E < 28)||(e_x<=0.00015)){
+            if((E < 28)||e_x<=0.000015){
                 break;
             }
         }
@@ -388,7 +433,8 @@ double energyloss(vector<double> c, vector<double> c_lim, double Ei, double thet
 
         //d = sqrt((x-1.0*get<0>(pos))*(x-1.0*get<0>(pos))+(y-1.0*get<1>(pos))*(y-1.0*get<1>(pos)));
         d += dt;
-        e_x = weighfour(x,y,profile);
+        //e_x = weighfour(x,y,profile);
+        e_x = weighfour(x,y,profile)*temp_fraction(d);
 
         
         E = E - c_lim[0]*c[0]*dt*js; //0.75
@@ -429,13 +475,14 @@ double energyloss(vector<double> c, vector<double> c_lim, double Ei, double thet
 
 // checked below 
 
-vector<double> xj_sample(vector<double> c, vector<double> c_lim, double dt, int iters, int jetsamples, vector<vector<double>> data){
+vector<double> xj_sample(vector<double> c, vector<double> c_lim, double dt, int iters, int jetsamples){
 
     cout << "xjsample" << endl;
 
     vector<double> xjs(2*iters*jetsamples,0);
 
     double E1,E2;
+    double rg1,rg2;
     double theta1,theta2;
     double pt1,pt2,ptL;
     double xj;
@@ -448,9 +495,15 @@ vector<double> xj_sample(vector<double> c, vector<double> c_lim, double dt, int 
             index = i*jetsamples+j;
             //cout << index << endl;
             //cout << "energypick " << endl;
-            tuple<int,int> energypicks = energypick(data);
-            E1 = 1.0*get<0>(energypicks);
-            E2 = 1.0*get<1>(energypicks);
+            //tuple<int,int> energypicks = energypick(data);
+            //E1 = 1.0*get<0>(energypicks);
+            //E2 = 1.0*get<1>(energypicks);
+
+            vector<double> energypicks = energypick2();
+            E1 = energypicks[0];
+            E2 = energypicks[1];
+            rg1 = energypicks[2];
+            rg2 = energypicks[3];
             //E1 = 150;
             //E2 = 100;
 
@@ -461,8 +514,8 @@ vector<double> xj_sample(vector<double> c, vector<double> c_lim, double dt, int 
             theta2 = theta1 + 3.1415926;
 
             //cout << theta1 << " " << theta2 << endl;
-            pt1 = energyloss(c,c_lim,E1,theta1,prof,dt);
-            pt2 = energyloss(c,c_lim,E2,theta2,prof,dt);
+            pt1 = energyloss(c,c_lim,E1,rg1,theta1,prof,dt);
+            pt2 = energyloss(c,c_lim,E2,rg2,theta2,prof,dt);
 
            
             //cout << pt1 << " " << pt2 << endl;
@@ -478,7 +531,7 @@ vector<double> xj_sample(vector<double> c, vector<double> c_lim, double dt, int 
             xjs[2*index] = ptL;
             xjs[2*index+1] =xj;
 
-            if((i*jetsamples+j)%500 == 0){
+            if((i*jetsamples+j)%10 == 0){
                 cout << setw(5) <<1.0*(i*jetsamples+j)/(iters*jetsamples) << " " << setw(5) << xjs[2*index] << " " << xjs[2*index+1] << endl;
             }
         }
