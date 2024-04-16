@@ -12,6 +12,7 @@
 #include <random>
 //#include "xjsample.cpp"
 #include "xjmetric.cpp"
+//#include "descent.cpp"
 
 using namespace std;
 
@@ -27,9 +28,9 @@ class datapoint{
 
     datapoint(vector<double> cvec,string names){
         c = cvec;
-        dt = 1;
-        events = 1;
-        jetsamples = 100;
+        dt = 2;
+        events = 5000;
+        jetsamples = 4;
         subsamples = 10;
         name = names;
     }
@@ -66,9 +67,15 @@ class datapoint{
     }
 
     double likelihood(vector<vector<vector<double>>> dists,vector<vector<vector<vector<double>>>> values){
-        cout << "llh" << endl;
+        cout << "likelihood" << endl;
         //return loglikelihood(dists,values,1.0*events*jetsamples/subsamples);
-        return residuals(dists,values,1.0*events*jetsamples/subsamples);
+          return residuals(dists,values,1.0*events*jetsamples/subsamples);
+         }            
+
+    double probability(vector<vector<vector<double>>> dists,vector<vector<vector<vector<double>>>> values){
+        cout << "likelihood" << endl;
+        //return loglikelihood(dists,values,1.0*events*jetsamples/subsamples);
+        return residuals2(dists,values,1.0*events*jetsamples/subsamples);
     }
     
     void filewrite(vector<vector<vector<double>>> dists,vector<vector<vector<vector<double>>>> values){
@@ -82,13 +89,15 @@ class datapoint{
         file << endl;
 
         double a = likelihood(dists,values);
+	    double b = probability(dists,values);
 
         file << "dt: " << dt << endl;
         file << "events: " << events << endl;
         file << "dijets: " << events*jetsamples << endl;
         file << "subsamples: " << subsamples << endl;
-        file << "Likelihood: " << a << endl;
-        //file << "Residuals: " << residuals(dists,values,1.0*events*jetsamples/subsamples) << endl;
+        file << "Residuals: " << a << endl;
+        file << "Probability: " << b << endl;
+	 //file << "Residuals: " << residuals(dists,values,1.0*events*jetsamples/subsamples) << endl;
         file << "Data: " << endl;
 
         vector<vector<double>> A = mean_data(dists);
@@ -120,6 +129,14 @@ class datapoint{
         return likelihood(dists,values);
     }
 
+   double execute2(vector<double> c_lim, vector<vector<vector<vector<double>>>> values){
+	vector<double> xj = xjsample(c_lim);
+	vector<vector<vector<double>>> dists = coag(xj);
+	filewrite(dists,values);
+	
+	return probability(dists,values);	
+	}
+
 };
 
 void dimscan(int idx, string filetag, vector<double> c_lim, vector<vector<vector<vector<double>>>> values){
@@ -127,101 +144,161 @@ void dimscan(int idx, string filetag, vector<double> c_lim, vector<vector<vector
     string name;
     vector<double> c = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
     for(int i = 0; i<60; i++){
-        c[idx] = 0.05*i;
+        c[idx] = 0.03*i;
         name = filename(filetag,i);
         datapoint d(c,name);
         d.execute(c_lim,values);
     }
 }
+int ctoggle(int v){
 
-/*vector<double> ceiling(vector<double> c,vector<double> c_lim){
+    int i = 0;
 
-    for(int i = 0; i<c.size(); i++){
-        if(c[i] < -5*c_lim[i]) {
-            c[i] = -5*c_lim[i];
-        }
-        else if(c[i] > 10*c_lim[i]){
-            c[i] = 10*c_lim[i];
+    if(v == 20){
+        i = 1;
+    }
+    if(v == 0){
+        i = 1;
+    }
+
+    return i;
+
+}
+
+vector<double> movepropose(vector<double> c_old,double radius){
+    
+    vector<double> c_new(c_old.size());
+    vector<double> rands = gauss_randoms(c_old.size());
+    for(int i = 0; i<rands.size(); i++){
+        //cout << rands[i] << " ";
+        if(sqrt(rands[i]*rands[i]) > 4){
+            rands[i] = 0;
         }
     }
-    return c;
-}*/
+    
+    for(int i = 0; i<c_old.size(); i++){
+        //cout << rands[i]*radius*ctoggle(i) << " ";
+        c_new[i] = c_old[i] + rands[i]*radius*ctoggle(i);
+        cout << c_old[i] + rands[i]*radius*ctoggle(i) << " ";
+    }
+    cout << endl;
 
-void gradient_descent(string filetag, vector<double> c_init, vector<double> c_lim,vector<vector<vector<vector<double>>>> values, int steps){
 
+    return c_new;
+}
+
+
+void gradient_descent(string filetag, vector<double> c_init,double radius, vector<double> c_lim,vector<vector<vector<vector<double>>>> values, int steps){
+
+    // initialize file names
     string name;
     name = filename(filetag,1);
+
+    // initialize position, and calculate initial value
     vector<double> c_old = c_init;
     vector<double> c_new = c_init;
     datapoint d(c_new,name);
+    double accept = 0;
+    double old_value = d.execute2(c_lim,values);
 
-    double old_value = d.execute(c_lim,values);
+    //variables for the value and gradient
     double value = 0;
     double totalgrad = 0;
     vector<double> gradient(c_lim.size(),0);
 
+    //global file
     ofstream file(filename(filetag,0));
     
-
+    cout << "c" << endl;
+    //main loo p
     for(int i = 0; i<steps; i++){
         
         //write stuff to file
         cout << "c old timestep" << endl;
         file << setw(10) << old_value;
         for(int i = 0; i<c_lim.size(); i++){
-            file << setw(10) << c_old[i];
+            file << setw(12) << c_old[i];
             cout << c_old[i] << " ";
         }
         file << endl;
         cout << endl;
         
+
         cout << "c new timestep" << endl;
         //update position according to gaussian proposal
-        vector<double> rands = gauss_randoms(c_lim.size());
-        for(int i = 0; i<c_lim.size(); i++){
-            c_old[i] += 0.01*rands[i];
-            cout << c_old[i] << " ";
-        }
-        //c_old[i] = ceiling(c_old[i],c_lim);
+        c_new = movepropose(c_old,radius);
+        
         //evaluate function at this point
         name = filename(filetag,i+2);
-        datapoint q(c_old,name);
-        value = q.execute(c_lim,values);
-        cout << "old value" << old_value << endl;
-        cout << "new value" << value << endl;
+        datapoint q(c_new,name);
+        value = q.execute2(c_lim,values);
+        accept = (value/old_value);
+        vector<double> k = randoms(1);
 
+        cout << "new value: " << value << " old value: " << old_value << endl;
+        cout << "accept prob: " << accept << " random num: " << k[0] << endl;
+        
+        
+        
+        
+        /*
         if(value > old_value){
-
             cout << " step not accepted, going back... " << endl;
-
-            for(int i = 0; i<c_lim.size(); i++){
-                c_old[i] -= 0.005*rands[i];
-            }
         }
         else{
-        //calculate gradient
             cout << " step accepted!" << endl;
 
-            for(int i = 0; i<c_lim.size(); i++){
-                gradient[i] = (value - old_value)/(0.01*rands[i]);
-                if((gradient[i] >= 5000) || (gradient[i] <= -5000)){
-                    gradient[i] = rands[i];   
-                }
-            }
-
-            //move
-            for(int i = 0; i<c_lim.size(); i++){
-                c_old[i]-= 0.005*(gradient[i]);
-                
-            }
-            datapoint m(c_old,name);
-            old_value = m.execute(c_lim,values);  
-            }
-
+            c_old = c_new;
+            old_value = value;
+        }
+        */
+       if(accept < k[0]){
+            cout << " step not accepted, going back... " << endl;
+       }
+       else{
+            cout << " step accepted!" << endl;
+            c_old = c_new;
+            old_value = value;
+       }
     }
 }
 
-int main(){
+vector<vector<double>> cgrid(int idx, vector<double> c, double l, double h, int increment){
+    vector<vector<double>> cgrid(increment,vector<double>(27));
+
+    //cout << "drum" << endl;
+    for(int i = 0; i<increment; i++){
+        for(int j = 0; j<c.size(); j++){
+            //cout << "i: " << i << " j: " << j << endl;
+            if(j==idx){
+                cgrid[i][j] = l + 1.0*i*((h-l)/(increment-1));
+            }
+            else{
+                cgrid[i][j] = c[j];
+            }
+        }
+    }
+
+    return cgrid;
+
+}
+
+
+int main(int argc, char* argv[]){
+
+    int idx;
+    try {
+        idx = std::stoi(argv[1]);
+    } catch (const std::exception& e) {
+        std::cerr << "Error: Invalid integer argument" << std::endl;
+        return 1;
+    }
+
+    // Get the string argument
+    std::string name = argv[2];
+
+
+
 
      // Default c coeff values
     double c0 = 0.75;
@@ -241,7 +318,7 @@ int main(){
     double c14 = 0.00002;
     double c15 = 0.00006;
     double c16 = 0.000005;
-    double c17 = 0.000004;
+    double c17 = 0.00004;
     double c18 = 0.5;
     double c19 = 0.03;
     double c20 = 0.001;
@@ -252,28 +329,20 @@ int main(){
     double c25 = 0.000004;
     double c26 = 0.0000002;
 
-    vector<vector<vector<vector<double>>>> values = importdata();
+    
+    vector<vector<vector<vector<double>>>> values = importdata2();
     vector<double> c_lim = {c0,c1,c2,c3,c4,c5,c6,c7,c8,c9,c10,c11,c12,c13,c14,c15,c16,c17,c18,c19,c20,c21,c22,c23,c24,c25,c26};
     //vector<vector<double>> eprof = eprofile("../energies.dat");    
+    vector<double> c = {0.0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0.0,0,0,0,0,0,0,0,0,0};
+    vector<vector<double>> cs = cgrid(0, c, 0,1,11);
+
+    //dimscan(idx,name,c_lim,values);
+    gradient_descent(name,cs[idx],0.05,c_lim,values,500);
+
     
-    vector<double> c = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
-    //dimscan(0,"cjq_",c_lim,values);
-    gradient_descent("tgd_",c,c_lim,values,100);
-    //cout << xjs.size() << endl;
-    //for(int i=0; i<xjs[0].size(); i++){
-    //    cout << xjs[0][i] << endl;
-    //}
 
 
-    //printvec(data_dist(2000,values));
-    //printvec(xjs);
-
-    //vector<vector<double>> dists = xj_dist(qqbar);
     
-    //datapoint cho(c,1,5000,10,5,"check.dat");
-    //cho.execute(c_lim,values);
 
-
-
-return 0;
+    return 0;
 }

@@ -369,7 +369,7 @@ vector<double> pathlength(double theta, vector<vector<double>> profile, double d
 
      while(i < 100/dt){
 
-        if(i > 1){
+        if(i > 5){
             if(e_x<=0.00015){
                 break;
             }
@@ -406,7 +406,8 @@ double energyloss(vector<double> c, vector<double> c_lim, double Ei, double rg, 
     double x = 1.0*get<0>(pos);
     double y = 1.0*get<1>(pos);
     double E = Ei;
-    double js = suscept(rg);
+    //double js = suscept(rg);
+    double js = 1;
     if(js != js){
         cout << "nan js" << endl;
         js = 1;
@@ -423,7 +424,7 @@ double energyloss(vector<double> c, vector<double> c_lim, double Ei, double rg, 
 
         //cout << "x: " << x << " y: " << y << " d: " << d << " e_x: " << e_x << " E: " << E << endl;
 
-        if(i > 1){
+        if(i > 5){
             if((E < 28)||e_x<=0.000015){
                 break;
             }
@@ -437,7 +438,7 @@ double energyloss(vector<double> c, vector<double> c_lim, double Ei, double rg, 
 
         //d = sqrt((x-1.0*get<0>(pos))*(x-1.0*get<0>(pos))+(y-1.0*get<1>(pos))*(y-1.0*get<1>(pos)));
         d += dt;
-        //e_x = weighfour(x,y,profile);
+       // e_x = weighfour(x,y,profile);
         e_x = weighfour(x,y,profile)*temp_fraction(d);
 
         
@@ -471,7 +472,6 @@ double energyloss(vector<double> c, vector<double> c_lim, double Ei, double rg, 
 
 
         //cout << E << endl;
-        
        i+=1; 
     } 
     return E;

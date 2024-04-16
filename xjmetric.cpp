@@ -694,6 +694,112 @@ vector<vector<vector<vector<double>>>> importdata(){
     return r;
 }
 
+vector<vector<vector<vector<double>>>> importdata2(){
+
+    vector<double> v0_0 =  { 4.39801e-06,  1.0652e-05, 2.08995e-05,  3.3095e-05, 4.24695e-05, 4.70079e-05,  4.5348e-05, 3.56661e-05, 2.90352e-05, 2.77452e-05};
+    vector<double> v0_1 =  { 4.01799e-06, 8.89163e-06, 1.65882e-05, 2.39691e-05, 2.81868e-05, 2.78303e-05, 2.33805e-05, 1.95871e-05,  1.9406e-05, 2.08813e-05};
+    vector<double> v0_2 =  { 3.46168e-06, 7.70726e-06,  1.2018e-05,  1.6018e-05, 1.84168e-05, 1.68661e-05, 1.44512e-05, 1.35921e-05, 1.43643e-05, 1.50366e-05};
+    vector<double> v0_3 =  { 2.32589e-06, 5.06439e-06,  8.0049e-06,  9.8267e-06, 1.07924e-05, 1.09014e-05, 1.01992e-05, 9.43607e-06, 9.27632e-06, 9.87261e-06};
+    vector<double> v0_4 =  { 2.45145e-06, 3.77029e-06, 5.17561e-06, 6.31117e-06, 6.90522e-06, 6.81639e-06, 6.15032e-06,   5.784e-06, 6.15202e-06, 6.32677e-06};
+    vector<double> v0_5 =  { 1.55705e-06,  2.2396e-06, 2.86691e-06, 3.43495e-06, 3.85487e-06, 4.05107e-06, 3.87773e-06,  3.5615e-06, 3.72816e-06, 4.05469e-06};
+    vector<double> v0_6 =  {  8.1258e-07, 1.14423e-06, 1.39118e-06, 1.78457e-06, 2.21164e-06, 2.35357e-06, 2.31274e-06, 2.23473e-06, 2.38256e-06,  2.5536e-06};
+    vector<double> v0_7 =  { 3.93667e-07, 5.03094e-07,  6.6809e-07, 8.98913e-07, 1.13213e-06, 1.30627e-06, 1.38406e-06, 1.36692e-06, 1.43689e-06, 1.58413e-06};
+    vector<double> v0_8 =  { 2.14835e-07,  2.6912e-07, 3.36413e-07, 4.61112e-07, 6.16902e-07, 7.34475e-07, 7.81399e-07, 8.05995e-07, 8.62786e-07, 9.28276e-07};
+    vector<double> v0_9 =  { 9.51149e-08,  1.1159e-07, 1.44882e-07, 2.15141e-07, 3.08171e-07, 3.92071e-07, 4.27488e-07, 4.44718e-07, 4.87768e-07, 5.37854e-07};
+    vector<double> v0_10 =  { 5.62699e-08, 7.15766e-08,  1.1193e-07, 1.64826e-07, 2.26653e-07, 2.60164e-07, 3.18722e-07,  3.8466e-07, 4.14362e-07, 4.66345e-07};
+    vector<double> v0_11 =  {  1.8415e-08,  2.0658e-08, 2.28276e-08, 3.53968e-08, 5.11915e-08, 6.84573e-08, 8.72345e-08, 1.06074e-07, 1.29394e-07, 1.55071e-07};
+
+
+    vector<double> s0_0 =  { 3.90226e-06, 7.61828e-06, 1.00484e-05, 8.34705e-06, 6.02297e-06, 6.97622e-06, 6.15215e-06, 5.28415e-06, 4.39439e-06, 2.85891e-06};
+    vector<double> s0_1 =  {  3.4088e-06, 4.93092e-06, 5.47078e-06, 4.24558e-06, 3.71838e-06,  4.8945e-06, 4.94923e-06, 4.11446e-06, 1.61461e-06, 2.55071e-06};
+    vector<double> s0_2 =  { 1.94857e-06, 2.49263e-06, 2.22769e-06, 1.98862e-06,  2.1433e-06, 3.08513e-06, 3.11725e-06, 1.86958e-06, 7.85001e-07, 1.70628e-06};
+    vector<double> s0_3 =  { 1.16839e-06, 1.61679e-06, 1.42061e-06, 1.26478e-06,   9.385e-07, 7.44696e-07, 7.40115e-07, 9.04909e-07, 7.20697e-07, 8.54077e-07};
+    vector<double> s0_4 =  { 6.22885e-07, 6.45748e-07, 7.62998e-07, 9.12499e-07, 8.96394e-07, 6.46336e-07, 4.32448e-07,  5.7198e-07, 4.72064e-07, 3.96907e-07};
+    vector<double> s0_5 =  { 2.09586e-07, 2.59232e-07, 3.64021e-07, 4.23377e-07, 3.79596e-07, 3.62495e-07, 2.77813e-07, 3.64145e-07, 3.34534e-07, 2.54525e-07};
+    vector<double> s0_6 =  { 1.53571e-07, 1.67506e-07, 1.81071e-07, 1.86741e-07, 2.58167e-07, 2.38041e-07, 1.85728e-07, 1.74757e-07, 1.74882e-07, 1.63487e-07};
+    vector<double> s0_7 =  { 7.76926e-08, 9.27109e-08, 9.18929e-08, 9.02091e-08, 1.01451e-07, 1.11861e-07, 1.15186e-07, 1.00434e-07, 1.10107e-07, 1.09791e-07};
+    vector<double> s0_8 =  { 3.26819e-08, 4.41468e-08, 4.31135e-08, 4.18048e-08, 5.58599e-08, 6.93461e-08, 6.52115e-08, 6.12281e-08, 6.43434e-08, 7.08568e-08};
+    vector<double> s0_9 =  { 1.05449e-08, 1.10783e-08, 1.60744e-08, 2.33713e-08, 2.88719e-08,   3.935e-08, 4.34229e-08, 3.79664e-08, 3.74596e-08, 3.92476e-08};
+    vector<double> s0_10 =  { 1.36973e-08, 1.44996e-08, 2.13812e-08, 2.10063e-08, 2.45463e-08, 2.59053e-08, 3.58926e-08, 4.00238e-08, 3.64604e-08, 4.13029e-08};
+    vector<double> s0_11 =  { 5.12302e-09, 6.08045e-09, 5.64773e-09,  6.7636e-09,  8.9295e-09, 9.50857e-09, 1.04714e-08,   1.139e-08, 1.20827e-08, 1.21427e-08};
+
+    vector<double> e0_0 =  { 4.39801e-06,  1.0652e-05, 2.08995e-05,  3.3095e-05, 4.24695e-05, 4.70079e-05,  4.5348e-05, 3.56661e-05, 2.90352e-05, 2.77452e-05};
+    vector<double> e0_1 =  { 4.01799e-06, 8.89163e-06, 1.65882e-05, 2.39691e-05, 2.81868e-05, 2.78303e-05, 2.33805e-05, 1.95871e-05,  1.9406e-05, 2.08813e-05};
+    vector<double> e0_2 =  { 3.46168e-06, 7.70726e-06,  1.2018e-05,  1.6018e-05, 1.84168e-05, 1.68661e-05, 1.44512e-05, 1.35921e-05, 1.43643e-05, 1.50366e-05};
+    vector<double> e0_3 =  { 2.32589e-06, 5.06439e-06,  8.0049e-06,  9.8267e-06, 1.07924e-05, 1.09014e-05, 1.01992e-05, 9.43607e-06, 9.27632e-06, 9.87261e-06};
+    vector<double> e0_4 =  { 2.45145e-06, 3.77029e-06, 5.17561e-06, 6.31117e-06, 6.90522e-06, 6.81639e-06, 6.15032e-06,   5.784e-06, 6.15202e-06, 6.32677e-06};
+    vector<double> e0_5 =  { 1.55705e-06,  2.2396e-06, 2.86691e-06, 3.43495e-06, 3.85487e-06, 4.05107e-06, 3.87773e-06,  3.5615e-06, 3.72816e-06, 4.05469e-06};
+    vector<double> e0_6 =  {  8.1258e-07, 1.14423e-06, 1.39118e-06, 1.78457e-06, 2.21164e-06, 2.35357e-06, 2.31274e-06, 2.23473e-06, 2.38256e-06,  2.5536e-06};
+    vector<double> e0_7 =  { 3.93667e-07, 5.03094e-07,  6.6809e-07, 8.98913e-07, 1.13213e-06, 1.30627e-06, 1.38406e-06, 1.36692e-06, 1.43689e-06, 1.58413e-06};
+    vector<double> e0_8 =  { 2.14835e-07,  2.6912e-07, 3.36413e-07, 4.61112e-07, 6.16902e-07, 7.34475e-07, 7.81399e-07, 8.05995e-07, 8.62786e-07, 9.28276e-07};
+    vector<double> e0_9 =  { 9.51149e-08,  1.1159e-07, 1.44882e-07, 2.15141e-07, 3.08171e-07, 3.92071e-07, 4.27488e-07, 4.44718e-07, 4.87768e-07, 5.37854e-07};
+    vector<double> e0_10 =  { 5.62699e-08, 7.15766e-08,  1.1193e-07, 1.64826e-07, 2.26653e-07, 2.60164e-07, 3.18722e-07,  3.8466e-07, 4.14362e-07, 4.66345e-07};
+    vector<double> e0_11 =  {  1.8415e-08,  2.0658e-08, 2.28276e-08, 3.53968e-08, 5.11915e-08, 6.84573e-08, 8.72345e-08, 1.06074e-07, 1.29394e-07, 1.55071e-07};
+
+
+    vector<vector<double>> s0;
+    s0.push_back(s0_0);
+    s0.push_back(s0_1);
+    s0.push_back(s0_2);
+    s0.push_back(s0_3);
+    s0.push_back(s0_4);
+    s0.push_back(s0_5);
+    s0.push_back(s0_6);
+    s0.push_back(s0_7);
+    s0.push_back(s0_8);
+    s0.push_back(s0_9);
+    s0.push_back(s0_10);
+    s0.push_back(s0_11);
+    //s0.push_back(s0_12);
+
+    vector<vector<double>> v0;
+    v0.push_back(v0_0);
+    v0.push_back(v0_1);
+    v0.push_back(v0_2);
+    v0.push_back(v0_3);
+    v0.push_back(v0_4);
+    v0.push_back(v0_5);
+    v0.push_back(v0_6);
+    v0.push_back(v0_7);
+    v0.push_back(v0_8);
+    v0.push_back(v0_9);
+    v0.push_back(v0_10);
+    v0.push_back(v0_11);
+    //v0.push_back(v0_12);
+
+
+    vector<vector<double>> e0;
+    e0.push_back(e0_0);
+    e0.push_back(e0_1);
+    e0.push_back(e0_2);
+    e0.push_back(e0_3);
+    e0.push_back(e0_4);
+    e0.push_back(e0_5);
+    e0.push_back(e0_6);
+    e0.push_back(e0_7);
+    e0.push_back(e0_8);
+    e0.push_back(e0_9);
+    e0.push_back(e0_10);
+    e0.push_back(e0_11);
+    //e0.push_back(e0_12);
+
+    vector<vector<vector<double>>> v;
+    v.push_back(v0);
+    
+    vector<vector<vector<double>>> e;
+    e.push_back(e0);
+    
+    vector<vector<vector<double>>> s;
+    s.push_back(s0);
+    
+    vector<vector<vector<vector<double>>>> r;
+    r.push_back(v);
+    r.push_back(e);
+    r.push_back(s);    
+
+    return r;
+}
+
 vector<vector<double>> xj_dist(vector<double> xj_sample){
     
     // convert vectors from xj_sample into 2d histograms 
@@ -743,7 +849,7 @@ vector<vector<vector<double>>> coag_data(vector<double> xj_sample,int subsamples
         //cout << "subsamples: " << subsamples << endl;
         //cout << "size" << xjs.size();
         for(int i = 0; i<subsamples; i++){
-            cout << xjs[i].size() << endl;
+            //cout << xjs[i].size() << endl;
             vector<vector<double>> a = xj_dist(xjs[i]);
             dists[i] = a;
         }
@@ -761,8 +867,8 @@ vector<vector<double>> data_dist(double njets, vector<vector<vector<vector<doubl
     vector<vector<double>> r(12,vector<double>(10,0));
     for(int i = 0; i<r.size(); i++){
         for(int j = 0; j<r[0].size(); j++){
-           r[i][j] = xj_exp[i][j]*raa_data[i]*(njets)*pythia_data[i]*xj_binwidth(j);
-           //r[i][j] = xj_exp[i][j]*raa_data[i]*(njets)*pythia_data[i];
+           //r[i][j] = xj_exp[i][j]*raa_data[i]*(njets)*pythia_data[i]*xj_binwidth(j);
+           r[i][j] = xj_exp[i][j]*raa_data[i]*(njets)*pythia_data[i];
         }
     }
 
@@ -974,6 +1080,20 @@ double residuals(vector<vector<vector<double>>> xj_dists, vector<vector<vector<v
         a+= (mu_x[i] - mu_y[i])*(mu_x[i] - mu_y[i]);
     }
     return a;
+}
+
+double residuals2(vector<vector<vector<double>>> xj_dists, vector<vector<vector<vector<double>>>> values, double njets){
+
+   vector<double> mu_x = vectorize(xj_mean(xj_dists));
+    vector<double> mu_y = vectorize(data_dist(njets,values));
+    vector<double> sig_x = vectorize(xj_stddev(xj_dists));
+    double a = 0;
+    for(int i = 0; i< mu_x.size(); i++){
+        if(sig_x[i] != 0){
+        a+= (mu_x[i] - mu_y[i])*(mu_x[i] - mu_y[i])/(sig_x[i]*sig_x[i]);
+        }
+    }
+    return exp(-1*a);
 }
 
 double loglikelihood(vector<vector<vector<double>>> xj_dists, vector<vector<vector<vector<double>>>> values,double njets){
