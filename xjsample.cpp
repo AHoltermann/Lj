@@ -406,8 +406,8 @@ double energyloss(vector<double> c, vector<double> c_lim, double Ei, double rg, 
     double x = 1.0*get<0>(pos);
     double y = 1.0*get<1>(pos);
     double E = Ei;
-    //double js = suscept(rg);
-    double js = 1;
+    double js = suscept(rg);
+    //double js = 1;
     if(js != js){
         cout << "nan js" << endl;
         js = 1;

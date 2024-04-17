@@ -30,7 +30,7 @@ class datapoint{
         c = cvec;
         dt = 2;
         events = 5000;
-        jetsamples = 4;
+        jetsamples = 2;
         subsamples = 10;
         name = names;
     }
@@ -336,10 +336,8 @@ int main(int argc, char* argv[]){
     vector<double> c = {0.0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0.0,0,0,0,0,0,0,0,0,0};
     vector<vector<double>> cs = cgrid(0, c, 0,1,11);
 
-    //dimscan(idx,name,c_lim,values);
+    dimscan(idx,name,c_lim,values);
     gradient_descent(name,cs[idx],0.05,c_lim,values,500);
-
-    
 
 
     
